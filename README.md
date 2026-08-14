@@ -1,6 +1,8 @@
 [English](README.en.md)
 
-`# dsh-rss
+# dsh-rss
+
+> **agent 的资讯雷达**：订阅管理 + RSS/Atom 抓取解析。
 
 ![npm version](https://img.shields.io/npm/v/dsh-rss?label=npm&color=blue) ![npm downloads](https://img.shields.io/npm/dm/dsh-rss) ![license](https://img.shields.io/npm/l/dsh-rss) ![stars](https://img.shields.io/github/stars/STARDUSTLC666/dsh-rss?style=social)
 
