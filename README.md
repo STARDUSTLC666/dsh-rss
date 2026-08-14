@@ -1,3 +1,5 @@
+[English](README.en.md)
+
 # dsh-rss
 
 DSH（DeepSeek Harness）的 RSS/Atom 订阅工具插件：管理订阅源，抓取并解析 RSS 0.9x / 1.0 / 2.0 与 Atom，给模型提供五个可直接调用的工具。
