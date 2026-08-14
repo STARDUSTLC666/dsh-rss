@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<rss version='2.0' xmlns:content='http://purl.org/rss/1.0/modules/content/' xmlns:dc='http://purl.org/dc/elements/1.1/'>
+<channel>
+  <title>测试博客</title>
+  <link>https://blog.example.com/</link>
+  <description>一个用于测试的博客订阅源 &amp; 更多内容</description>
+  <language>zh-cn</language>
+  <lastBuildDate>Fri, 14 Aug 2026 09:05:22 GMT</lastBuildDate>
+  <generator>TestGen 1.0</generator>
+  <item>
+    <title>第一篇：标题 &amp; 符号</title>
+    <link>https://blog.example.com/post/1</link>
+    <guid isPermaLink='true'>https://blog.example.com/post/1</guid>
+    <pubDate>Fri, 14 Aug 2026 09:00:00 GMT</pubDate>
+    <dc:creator>小明</dc:creator>
+    <category>技术</category>
+    <category>RSS</category>
+    <description><![CDATA[<p>这是摘要内容</p><p>第二段</p>]]></description>
+    <content:encoded><![CDATA[<p>这是正文内容</p>]]></content:encoded>
+  </item>
+  <item>
+    <title>第二篇：无 guid 的文章</title>
+    <link>/post/2</link>
+    <pubDate>Thu, 13 Aug 2026 15:30:00 +0800</pubDate>
+    <description>普通摘要</description>
+    <enclosure url='https://cdn.example.com/audio/2.mp3' type='audio/mpeg' length='1234567'/>
+  </item>
+</channel>
+</rss>

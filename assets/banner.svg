@@ -1,0 +1,27 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='1280' height='640' viewBox='0 0 1280 640'>
+  <defs>
+    <linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'>
+      <stop offset='0%' stop-color='#0b1c33'/>
+      <stop offset='100%' stop-color='#14406e'/>
+    </linearGradient>
+    <linearGradient id='accent' x1='0' y1='0' x2='1' y2='1'>
+      <stop offset='0%' stop-color='#ffa14a'/>
+      <stop offset='100%' stop-color='#f97316'/>
+    </linearGradient>
+  </defs>
+  <rect width='1280' height='640' fill='url(#bg)'/>
+  <circle cx='1050' cy='120' r='70' fill='#ffffff' opacity='0.05'/>
+  <circle cx='1120' cy='230' r='34' fill='#ffffff' opacity='0.06'/>
+  <circle cx='990' cy='480' r='52' fill='#ffffff' opacity='0.04'/>
+  <circle cx='1180' cy='560' r='88' fill='#ffffff' opacity='0.04'/>
+  <g transform='translate(170,200)'>
+    <rect x='0' y='0' width='240' height='240' rx='56' fill='url(#accent)'/>
+    <circle cx='84' cy='156' r='22' fill='#ffffff'/>
+    <path d='M60 108 a48 48 0 0 1 48 48' fill='none' stroke='#ffffff' stroke-width='18' stroke-linecap='round'/>
+    <path d='M42 72 a84 84 0 0 1 84 84' fill='none' stroke='#ffffff' stroke-width='18' stroke-linecap='round' opacity='0.7'/>
+  </g>
+  <text x='470' y='300' font-family='Segoe UI, Microsoft YaHei, sans-serif' font-size='96' font-weight='700' fill='#ffffff'>dsh-rss</text>
+  <text x='474' y='368' font-family='Segoe UI, Microsoft YaHei, sans-serif' font-size='36' fill='#9fc3e8'>RSS feeds for your DeepSeek Harness agent</text>
+  <path d='M0 560 q160 -60 320 0 t320 0 t320 0 t320 0' fill='none' stroke='#ffa14a' stroke-width='10' stroke-linecap='round' opacity='0.35'/>
+  <path d='M0 600 q160 -50 320 0 t320 0 t320 0 t320 0' fill='none' stroke='#ffa14a' stroke-width='6' stroke-linecap='round' opacity='0.2'/>
+</svg>

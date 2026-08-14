@@ -1,0 +1,20 @@
+# dsh-rss 组合包补丁：把 RSS 订阅工具插件行插入 profile。
+# 本补丁按 id 覆盖；用户应在自己 profile 的 cordis.patch.yml 里覆盖本行的整个
+# config（见 README 的配置示例）。配置缺失时插件仍会加载，但每个工具在调用时
+# 会抛出带中文指引的错误，提示补全配置后重启。
+#
+# 示例（用户 profile 的 cordis.patch.yml）：
+#   - id: rss
+#     name: 'dsh-rss'
+#     config:
+#       # proxyUrl: http://127.0.0.1:7890   # 部分订阅源需要特殊代理（梯子）时启用
+#       timeoutMs: 15000                     # 抓取超时（毫秒）
+#       # feedsYaml: |                        # 可选：预置订阅列表（也可用 rss_add 工具添加）
+#       #   - url: https://example.com/feed.xml
+#       #     name: 示例订阅
+#
+- insert:
+    - id: rss
+      name: 'dsh-rss'
+      config:
+        timeoutMs: 15000
