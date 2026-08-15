@@ -1,8 +1,8 @@
 /**
  * dsh-rss —— RSS/Atom 订阅工具插件（node 半身，配置走 cordis.patch.yml）。
  *
- * 插件导出 apply(ctx, config)：把五个面向模型的工具（rss_list / rss_add / rss_remove /
- * rss_fetch / rss_check）注册进宿主进程的工具注册表，并把订阅列表接入 settings
+ * 插件导出 apply(ctx, config)：把七个面向模型的工具（rss_list / rss_add / rss_remove /
+ * rss_fetch / rss_check / rss_opml_export / rss_opml_import）注册进宿主进程的工具注册表，并把订阅列表接入 settings
  * 命名空间（dsh-rss.feedsYaml）。配置缺失时插件照常加载，工具在 execute 时才抛出
  * 带中文指引的错误。
  *
@@ -57,6 +57,7 @@ export function apply(ctx: RssPluginContext, config?: RssConfig | null): void {
 
 export * from './config.js'
 export * from './feeds.js'
+export * from './opml.js'
 export * from './parser.js'
 export * from './proxy-fetch.js'
 export * from './settings.js'

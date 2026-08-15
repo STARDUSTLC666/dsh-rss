@@ -1,12 +1,14 @@
 /**
- * 五个面向模型的 RSS 工具：list / add / remove / fetch / check。
+ * 七个面向模型的 RSS 工具：list / add / remove / fetch / check / opml_export / opml_import。
  * 直接调用 ctx.tools.register 注册【编译好的 JSON Schema】参数与 canonical 输出。
  *
  * @module dsh-rss/tools
  */
 
+import { writeFile } from 'node:fs/promises'
 import { type ResolvedRssConfig } from './config.js'
 import { addFeed, findFeedsByName, parseFeedsYaml, removeFeed, serializeFeeds, type Feed } from './feeds.js'
+import { buildOpml, importOpmlFeeds, parseOpml } from './opml.js'
 import { parseFeed } from './parser.js'
 import { createProxyFetch } from './proxy-fetch.js'
 
@@ -156,6 +158,7 @@ const entrySchema = {
     pubDateRaw: { type: 'string' },
     author: { type: 'string' },
     summary: { type: 'string' },
+    content: { type: 'string' },
     categories: { type: 'array', items: { type: 'string' } },
     enclosure: {
       type: 'object',
@@ -240,6 +243,29 @@ const checkSchema = {
   additionalProperties: true,
 }
 
+const opmlExportSchema = {
+  type: 'object',
+  properties: {
+    opml: { type: 'string' },
+    path: { type: 'string' },
+    feedCount: { type: 'integer' },
+  },
+  additionalProperties: true,
+}
+
+const opmlImportSchema = {
+  type: 'object',
+  properties: {
+    addedCount: { type: 'integer' },
+    existedCount: { type: 'integer' },
+    skippedCount: { type: 'integer' },
+    totalCount: { type: 'integer' },
+    added: { type: 'array', items: feedItemSchema },
+    skipped: { type: 'array', items: { type: 'object', additionalProperties: true } },
+  },
+  additionalProperties: true,
+}
+
 // ---------- render 帮助函数 ----------
 
 function feedLabel(feed: unknown): string {
@@ -300,10 +326,29 @@ function renderCheck(_args: unknown, value: unknown): ContentBlock[] {
   return [{ type: 'text', text }]
 }
 
+function renderOpmlExport(_args: unknown, value: unknown): ContentBlock[] {
+  const rec = asRecord(value)
+  const path = typeof rec.path === 'string' && rec.path !== '' ? '，已写入 ' + rec.path : ''
+  return [{ type: 'text', text: '已导出 ' + String(rec.feedCount ?? 0) + ' 个订阅为 OPML' + path + '。' }]
+}
+
+function renderOpmlImport(_args: unknown, value: unknown): ContentBlock[] {
+  const rec = asRecord(value)
+  const lines = [
+    'OPML 导入完成：新增 ' + String(rec.addedCount ?? 0) + '，已存在 ' + String(rec.existedCount ?? 0) + '，跳过 ' + String(rec.skippedCount ?? 0) + '。当前共 ' + String(rec.totalCount ?? 0) + ' 个订阅源。',
+  ]
+  const skipped = Array.isArray(rec.skipped) ? rec.skipped : []
+  for (const item of skipped) {
+    const row = asRecord(item)
+    lines.push('- 跳过：' + String(row.title ?? '') + '（' + String(row.reason ?? '') + '）')
+  }
+  return [{ type: 'text', text: lines.join('\n') }]
+}
+
 // ---------- 工具构建 ----------
 
 /**
- * 构建五个工具定义。每个 execute 惰性读取配置与订阅，错误时抛出中文指引。
+ * 构建七个工具定义。每个 execute 惰性读取配置与订阅，错误时抛出中文指引。
  * @param config - 已解析配置。
  * @param settingsScope - dsh-rss settings scope（get/update）。
  * @param fetchImpl - 可选注入的 fetch（测试用），缺省按 proxyUrl 构造。
@@ -455,5 +500,56 @@ export function buildRssTools(config: ResolvedRssConfig, settingsScope: RssSetti
     timeoutMs: TIMEOUT_MS,
   }
 
-  return [rssList, rssAdd, rssRemove, rssFetch, rssCheck]
+  const rssOpmlExport: RssToolDefinition = {
+    name: 'rss_opml_export',
+    description: '把当前订阅列表导出为 OPML 2.0 文本（可直接导入 Feedly / Inoreader / NetNewsWire 等阅读器）。path 可选：提供时同时写入工作区文件。',
+    parameters: compileParameters({
+      path: { type: 'string', description: '可选输出文件路径（相对当前工作区）。缺省时只返回 OPML 文本。' },
+    }),
+    output: {
+      schema: opmlExportSchema,
+      render: renderOpmlExport,
+    },
+    async execute(rawArgs: unknown) {
+      const args = asRecord(rawArgs)
+      const feeds = getFeeds()
+      const opml = buildOpml(feeds)
+      const target = optionalString(args, 'path')
+      if (target !== undefined) {
+        await writeFile(target, opml, 'utf8')
+      }
+      return { opml, path: target ?? '', feedCount: feeds.length }
+    },
+    timeoutMs: TIMEOUT_MS,
+  }
+
+  const rssOpmlImport: RssToolDefinition = {
+    name: 'rss_opml_import',
+    description: '从 OPML 2.0 文本批量导入订阅源（与现有订阅按 url 去重，已存在的只更新 name/category；非法 URL 跳过并报告原因）。导入结果持久化到 settings。',
+    parameters: compileParameters({
+      opml: { type: 'string', required: true, description: 'OPML 2.0 XML 文本（必填，可直接粘贴导出文件的内容）。' },
+    }),
+    output: {
+      schema: opmlImportSchema,
+      render: renderOpmlImport,
+    },
+    async execute(rawArgs: unknown) {
+      const args = asRecord(rawArgs)
+      const opmlText = requiredString(args, 'opml', 'OPML 文本')
+      const document = parseOpml(opmlText)
+      const outcome = importOpmlFeeds(getFeeds(), document)
+      await persistFeeds(outcome.feeds)
+      return {
+        addedCount: outcome.addedCount,
+        existedCount: outcome.existedCount,
+        skippedCount: outcome.skippedCount,
+        totalCount: outcome.feeds.length,
+        added: outcome.added,
+        skipped: outcome.skipped,
+      }
+    },
+    timeoutMs: TIMEOUT_MS,
+  }
+
+  return [rssList, rssAdd, rssRemove, rssFetch, rssCheck, rssOpmlExport, rssOpmlImport]
 }

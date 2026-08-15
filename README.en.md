@@ -2,7 +2,7 @@
 
 [![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
 
-DSH (DeepSeek Harness) plugin for RSS/Atom subscriptions: manage feeds, fetch and parse RSS 0.9x / 1.0 / 2.0 and Atom, and expose five model-facing tools.
+DSH (DeepSeek Harness) plugin for RSS/Atom subscriptions: manage feeds, fetch and parse RSS 0.9x / 1.0 / 2.0 and Atom, with OPML bulk import/export, exposing seven model-facing tools.
 
 ## Installation
 
@@ -23,7 +23,7 @@ Override the plugin row in your profile's `cordis.patch.yml` (the plugin also lo
     # proxyUrl: http://127.0.0.1:7890   # enable when a feed needs a special proxy
     timeoutMs: 15000                     # fetch timeout in ms (default 15000)
     # maxBodyBytes: 5242880              # response size cap (default 5MB, guards oversized responses)
-    # userAgent: 'dsh-rss/0.1.0'         # custom fetch UA
+    # userAgent: 'dsh-rss/0.2.0'         # custom fetch UA
     # feedsYaml: |                        # optional: pre-seed subscriptions (or use the rss_add tool)
     #   - url: https://example.com/feed.xml
     #     name: My feed
@@ -37,8 +37,10 @@ Override the plugin row in your profile's `cordis.patch.yml` (the plugin also lo
 | `rss_list` | List subscribed feeds | none |
 | `rss_add` | Add a subscription (fetches and validates the URL first) | `url` required; `name`/`category` optional |
 | `rss_remove` | Remove a subscription | `url` or `name`, at least one |
-| `rss_fetch` | Fetch and parse a feed, returning feed info and entries | `url` or `name`, at least one; `limit` 1-100, default 20 |
+| `rss_fetch` | Fetch and parse a feed, returning feed info and entries (with full `content`) | `url` or `name`, at least one; `limit` 1-100, default 20 |
 | `rss_check` | Validate that a URL is a parseable feed | `url` required |
+| `rss_opml_export` | Export subscriptions as OPML 2.0 text (optionally write a file) | `path` optional |
+| `rss_opml_import` | Bulk-import subscriptions from OPML 2.0 text | `opml` required |
 
 ### Examples
 
@@ -46,6 +48,8 @@ Override the plugin row in your profile's `cordis.patch.yml` (the plugin also lo
 rss_add { url: https://example.com/feed.xml, name: my-feed }
 rss_fetch { name: my-feed, limit: 10 }
 rss_check { url: https://example.com/feed.xml }
+rss_opml_export { path: subscriptions.opml }
+rss_opml_import { opml: "<?xml version=\"1.0\"?>..." }
 ```
 
 ## Subscriptions
@@ -62,14 +66,14 @@ Most feeds are reachable directly; a few require a special proxy from your netwo
 - Entity decoding, CDATA, `content:encoded`, `dc:creator` and other common fields
 - RFC 822 / ISO 8601 dates normalized to ISO 8601 UTC (`pubDate`); the raw text stays in `pubDateRaw`
 - Relative links resolved against the feed URL
-- Summaries stripped of HTML tags and truncated at 500 chars; full-content reading is planned for a later version
+- Summaries stripped of HTML tags and truncated at 500 chars; RSS `content:encoded` / Atom `content` is preserved as a `content` field (tags stripped, up to 20000 chars)
 - Safety: no DTD / external entity parsing; 5MB body cap; configurable fetch timeout
 
 ## Development
 
 ```bash
 pnpm install
-pnpm test       # builds + 47 tests
+pnpm test       # builds + 55 tests
 ```
 
 ## License

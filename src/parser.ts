@@ -23,6 +23,8 @@ export interface RssEntry {
   author: string
   summary: string
   categories: string[]
+  /** RSS content:encoded / Atom content 的正文（去标签，最多 20000 字符）；缺失时省略。 */
+  content?: string
   enclosure?: RssEnclosure
 }
 
@@ -46,6 +48,7 @@ export interface ParsedFeed {
 }
 
 const SUMMARY_MAX_CHARS = 500
+const CONTENT_MAX_CHARS = 20000
 
 const xmlParser = new XMLParser({
   ignoreAttributes: false,
@@ -179,6 +182,7 @@ function normalizeRssItem(item: Record<string, unknown>, baseUrl: string): RssEn
   link = resolveUrl(link, baseUrl)
   const pubDateRaw = firstText(item.pubDate) || firstText(item.date) || firstText(item.updated)
   const summaryRaw = firstText(item.description) || firstText(item.encoded) || firstText(item.summary)
+  const contentRaw = firstText(item.encoded) || firstText(item.content)
   const enclosure = pickRssEnclosure(item)
   const entry: RssEntry = {
     title,
@@ -190,6 +194,8 @@ function normalizeRssItem(item: Record<string, unknown>, baseUrl: string): RssEn
     summary: truncate(stripHtml(summaryRaw), SUMMARY_MAX_CHARS),
     categories: pickCategories(item.category),
   }
+  const content = truncate(stripHtml(contentRaw), CONTENT_MAX_CHARS)
+  if (content !== '') entry.content = content
   if (enclosure !== undefined) entry.enclosure = enclosure
   return entry
 }
@@ -203,6 +209,7 @@ function normalizeAtomEntry(entry: Record<string, unknown>, baseUrl: string): Rs
   link = resolveUrl(link, baseUrl)
   const pubDateRaw = firstText(entry.published) || firstText(entry.updated) || firstText(entry.issued)
   const summaryRaw = firstText(entry.summary) || firstText(entry.content)
+  const contentRaw = firstText(entry.content)
   let enclosure: RssEnclosure | undefined
   const links = Array.isArray(entry.link) ? entry.link : (entry.link === undefined || entry.link === null ? [] : [entry.link])
   for (const raw of links) {
@@ -228,6 +235,8 @@ function normalizeAtomEntry(entry: Record<string, unknown>, baseUrl: string): Rs
     summary: truncate(stripHtml(summaryRaw), SUMMARY_MAX_CHARS),
     categories: pickCategories(entry.category),
   }
+  const content = truncate(stripHtml(contentRaw), CONTENT_MAX_CHARS)
+  if (content !== '') normalized.content = content
   if (enclosure !== undefined) normalized.enclosure = enclosure
   return normalized
 }

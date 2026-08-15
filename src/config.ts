@@ -25,7 +25,7 @@ export interface ResolvedRssConfig {
 
 const DEFAULT_TIMEOUT_MS = 15000
 const DEFAULT_MAX_BODY_BYTES = 5 * 1024 * 1024
-const DEFAULT_USER_AGENT = 'dsh-rss/0.1.0 (DeepSeek Harness RSS plugin)'
+const DEFAULT_USER_AGENT = 'dsh-rss/0.2.0 (DeepSeek Harness RSS plugin)'
 
 function optionalString(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined
