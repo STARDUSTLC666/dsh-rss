@@ -41,7 +41,7 @@
   ],
   "license": "MIT",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "dependencies": {
     "fast-xml-parser": "^5.0.0",

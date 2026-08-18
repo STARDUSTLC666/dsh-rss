@@ -14,6 +14,7 @@ import { RSS_SETTINGS_NAMESPACE, RssSettingsSchema } from './settings.js'
 import { buildRssTools, type RssSettingsScope, type RssToolDefinition } from './tools.js'
 
 /** cordis 服务注入：apply 里要用 ctx.settings 与 ctx.tools，必须显式声明，否则宿主会抛 cannot get property without inject。 */
+export const name = 'rss'
 export const inject = ['settings', 'tools']
 
 /** 插件所需的最小 ctx 面（社区插件不依赖宿主内部类型）。 */
