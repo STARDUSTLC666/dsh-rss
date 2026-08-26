@@ -39,11 +39,11 @@ test('inject 声明 settings 与 tools', () => {
   assert.deepEqual(inject, ['settings', 'tools'])
 })
 
-test('apply 注册 7 个工具且名字正确', () => {
+test('apply 注册 9 个工具且名字正确', () => {
   const { ctx, registered } = makeFakeCtx()
   apply(ctx, {})
-  assert.equal(registered.length, 7)
-  assert.deepEqual(registered.map((t) => t.name).sort(), ['rss_add', 'rss_check', 'rss_fetch', 'rss_list', 'rss_opml_export', 'rss_opml_import', 'rss_remove'])
+  assert.equal(registered.length, 9)
+  assert.deepEqual(registered.map((t) => t.name).sort(), ['rss_add', 'rss_check', 'rss_fetch', 'rss_health', 'rss_list', 'rss_opml_export', 'rss_opml_import', 'rss_remove', 'rss_search'])
 })
 
 test('apply 注册 settings 命名空间并注入 base feedsYaml', () => {
@@ -58,16 +58,16 @@ test('apply 注册 settings 命名空间并注入 base feedsYaml', () => {
 test('apply 在配置缺失/非法时不抛，仅告警', () => {
   const first = makeFakeCtx()
   assert.doesNotThrow(() => apply(first.ctx, {}))
-  assert.equal(first.registered.length, 7)
+  assert.equal(first.registered.length, 9)
   const second = makeFakeCtx()
   assert.doesNotThrow(() => apply(second.ctx, { timeoutMs: -1 }))
-  assert.equal(second.registered.length, 7)
+  assert.equal(second.registered.length, 9)
 })
 
 test('dispose 触发时卸载全部工具', () => {
   const { ctx, registered, listeners } = makeFakeCtx()
   apply(ctx, {})
-  assert.equal(registered.length, 7)
+  assert.equal(registered.length, 9)
   for (const listener of listeners.dispose ?? []) listener()
   assert.equal(registered.length, 0)
 })

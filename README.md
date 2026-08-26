@@ -9,7 +9,7 @@
 [![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
 
 
-DSH（DeepSeek Harness）的 RSS/Atom 订阅工具插件：管理订阅源，抓取并解析 RSS 0.9x / 1.0 / 2.0 与 Atom，支持 OPML 批量导入导出，给模型提供七个可直接调用的工具。
+DSH（DeepSeek Harness）的 RSS/Atom 订阅工具插件：管理订阅源，抓取并解析 RSS 0.9x / 1.0 / 2.0 与 Atom，支持 OPML 批量导入导出，给模型提供九个可直接调用的工具。
 
 ## 兼容性
 
@@ -61,6 +61,8 @@ dsh plugin --profile web remove dsh-rss
 | `rss_check` | 校验地址是否为可解析的订阅源 | `url` 必填 |
 | `rss_opml_export` | 导出订阅列表为 OPML 2.0 文本（可写入文件） | `path` 可选 |
 | `rss_opml_import` | 从 OPML 2.0 文本批量导入订阅源 | `opml` 必填 |
+| `rss_search` | 跨订阅源关键词搜索条目（标题/摘要/正文/作者） | `query` 必填；`name`/`url`/`since`/`limit` 可选 |
+| `rss_health` | 插件自检（配置/订阅/游标/解析器，离线） | 无 |
 
 ### 示例
 
@@ -93,7 +95,7 @@ rss_opml_import { opml: "<?xml version=\"1.0\"?>..." }
 
 ```bash
 pnpm install
-pnpm test       # 构建 + 55 个测试
+pnpm test       # 构建 + 63 个测试
 ```
 
 发布前门禁：危险模式扫描、manifest 自检、`pnpm audit --prod`、全量测试，以及全新 profile 的真实启动冒烟测试。

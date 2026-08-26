@@ -32,7 +32,7 @@ const cfg = resolveConfig({ timeoutMs: 5000 })
 
 test('构建 7 个工具且名字正确', () => {
   const tools = buildRssTools(cfg, makeScope())
-  assert.deepEqual(tools.map((t) => t.name).sort(), ['rss_add', 'rss_check', 'rss_fetch', 'rss_list', 'rss_opml_export', 'rss_opml_import', 'rss_remove'])
+  assert.deepEqual(tools.map((t) => t.name).sort(), ['rss_add', 'rss_check', 'rss_fetch', 'rss_health', 'rss_list', 'rss_opml_export', 'rss_opml_import', 'rss_remove', 'rss_search'])
 })
 
 test('每个工具的 parameters 是编译好的 object JSON Schema，输出含 render', () => {

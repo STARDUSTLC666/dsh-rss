@@ -1,5 +1,5 @@
 /**
- * 七个面向模型的 RSS 工具：list / add / remove / fetch / check / opml_export / opml_import。
+ * 九个面向模型的 RSS 工具：list / add / remove / fetch / check / opml_export / opml_import / search / health（fetch 支持增量）。
  * 直接调用 ctx.tools.register 注册【编译好的 JSON Schema】参数与 canonical 输出。
  *
  * @module dsh-rss/tools
@@ -345,6 +345,165 @@ function renderOpmlImport(_args: unknown, value: unknown): ContentBlock[] {
   return [{ type: 'text', text: lines.join('\n') }]
 }
 
+// ---------- 增量抓取游标 ----------
+
+/** 单个订阅源的增量游标：已知条目 id 列表与更新时间。 */
+export interface FeedCursor {
+  guids: string[]
+  updatedAt: string
+}
+
+const CURSOR_GUID_LIMIT = 200
+
+/** 条目唯一 id：优先 guid，退回 link，再退回 标题|发布时间。 */
+function entryId(entry: unknown): string {
+  const rec = asRecord(entry)
+  const guid = typeof rec.guid === 'string' && rec.guid !== '' ? rec.guid : ''
+  if (guid !== '') return guid
+  const link = typeof rec.link === 'string' && rec.link !== '' ? rec.link : ''
+  if (link !== '') return link
+  const title = typeof rec.title === 'string' ? rec.title : ''
+  const pubDate = typeof rec.pubDate === 'string' ? rec.pubDate : ''
+  return title + '|' + pubDate
+}
+
+/** 解析 settings 里的增量游标 JSON，损坏时返回空对象（不阻断功能）。 */
+export function parseCursors(json: string): Record<string, FeedCursor> {
+  if (json.trim() === '') return {}
+  try {
+    const value = JSON.parse(json) as unknown
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) return {}
+    const out: Record<string, FeedCursor> = {}
+    for (const [url, cur] of Object.entries(value as Record<string, unknown>)) {
+      const rec = typeof cur === 'object' && cur !== null ? (cur as Record<string, unknown>) : {}
+      const guids = Array.isArray(rec.guids) ? rec.guids.filter((g): g is string => typeof g === 'string') : []
+      out[url] = { guids, updatedAt: typeof rec.updatedAt === 'string' ? rec.updatedAt : '' }
+    }
+    return out
+  } catch {
+    return {}
+  }
+}
+
+/** 合并本次抓到的条目 id，截断到上限，返回新游标。 */
+export function advanceCursor(prev: FeedCursor | undefined, entries: unknown[], now: string): FeedCursor {
+  const known = new Set(prev?.guids ?? [])
+  for (const entry of entries) known.add(entryId(entry))
+  const guids = [...known]
+  return { guids: guids.slice(-CURSOR_GUID_LIMIT), updatedAt: now }
+}
+
+/** 用游标过滤出未见过的条目（无游标时全部视为新）。 */
+export function filterNewEntries(cursor: FeedCursor | undefined, entries: unknown[]): unknown[] {
+  if (cursor === undefined || cursor.guids.length === 0) return entries
+  const known = new Set(cursor.guids)
+  return entries.filter((entry) => !known.has(entryId(entry)))
+}
+
+// ---------- 搜索辅助 ----------
+
+/** 解析 since 参数为毫秒时间戳，非法时报错。 */
+function parseSinceMs(input: string | undefined): number | null {
+  if (input === undefined) return null
+  const text = input.trim()
+  const ms = /^\d{4}-\d{2}-\d{2}$/.test(text) ? Date.parse(text + 'T00:00:00Z') : Date.parse(text)
+  if (Number.isNaN(ms)) {
+    throw new Error('since 参数不是有效日期，请给形如 2026-08-01 或 2026-08-01T00:00:00Z 的值。')
+  }
+  return ms
+}
+
+/** 关键词是否命中条目的标题/摘要/正文/作者/分类（不区分大小写）。 */
+function entryMatches(entry: unknown, queryLower: string): boolean {
+  const rec = asRecord(entry)
+  const fields: string[] = []
+  for (const key of ['title', 'summary', 'content', 'author']) {
+    const value = rec[key]
+    if (typeof value === 'string') fields.push(value)
+  }
+  const categories = rec.categories
+  if (Array.isArray(categories)) {
+    for (const category of categories) {
+      if (typeof category === 'string') fields.push(category)
+    }
+  }
+  return fields.some((value) => value.toLowerCase().includes(queryLower))
+}
+
+// ---------- 搜索与健康自检输出 Schema ----------
+
+const searchHitSchema = {
+  type: 'object',
+  properties: {
+    feedName: { type: 'string' },
+    feedUrl: { type: 'string' },
+    title: { type: 'string' },
+    link: { type: 'string' },
+    pubDate: { type: 'string' },
+    summary: { type: 'string' },
+  },
+  additionalProperties: true,
+}
+
+const searchSchema = {
+  type: 'object',
+  properties: {
+    count: { type: 'integer' },
+    hits: { type: 'array', items: searchHitSchema },
+    failedFeeds: { type: 'array', items: { type: 'object', additionalProperties: true } },
+  },
+  additionalProperties: true,
+}
+
+const healthSchema = {
+  type: 'object',
+  properties: {
+    ok: { type: 'boolean' },
+    plugin: { type: 'string' },
+    feedCount: { type: 'integer' },
+    proxyConfigured: { type: 'boolean' },
+    cursorCount: { type: 'integer' },
+    parserSelfTest: { type: 'boolean' },
+    config: { type: 'object', additionalProperties: true },
+  },
+  additionalProperties: true,
+}
+
+/** rss_search 的渲染。 */
+function renderSearch(_args: unknown, value: unknown): ContentBlock[] {
+  const rec = asRecord(value)
+  const hits = Array.isArray(rec.hits) ? rec.hits : []
+  const failed = Array.isArray(rec.failedFeeds) ? rec.failedFeeds : []
+  const lines = ['搜索命中 ' + hits.length + ' 条：']
+  for (const hit of hits) {
+    const item = asRecord(hit)
+    const title = typeof item.title === 'string' && item.title !== '' ? item.title : '(无标题)'
+    const from = typeof item.feedName === 'string' && item.feedName !== '' ? '【' + item.feedName + '】' : ''
+    const pubDate = typeof item.pubDate === 'string' && item.pubDate !== '' ? '（' + item.pubDate + '）' : ''
+    const link = typeof item.link === 'string' && item.link !== '' ? ' ' + item.link : ''
+    lines.push('- ' + from + title + pubDate + link)
+  }
+  for (const item of failed) {
+    const row = asRecord(item)
+    lines.push('- 抓取失败 ' + String(row.name ?? row.url ?? '') + '：' + String(row.error ?? ''))
+  }
+  return [{ type: 'text', text: lines.join('\n') }]
+}
+
+/** rss_health 的渲染。 */
+function renderHealth(_args: unknown, value: unknown): ContentBlock[] {
+  const rec = asRecord(value)
+  const ok = rec.ok === true
+  const lines = [
+    'dsh-rss 自检' + (ok ? '：正常。' : '：发现异常，请查看下方详情。'),
+    '- 订阅源数量：' + String(rec.feedCount ?? 0),
+    '- 特殊代理（梯子）：' + (rec.proxyConfigured === true ? '已配置' : '未配置'),
+    '- 增量游标数量：' + String(rec.cursorCount ?? 0),
+    '- 解析器自检：' + (rec.parserSelfTest === true ? '通过' : '失败'),
+  ]
+  return [{ type: 'text', text: lines.join('\n') }]
+}
+
 // ---------- 工具构建 ----------
 
 /**
@@ -433,13 +592,27 @@ export function buildRssTools(config: ResolvedRssConfig, settingsScope: RssSetti
     timeoutMs: TIMEOUT_MS,
   }
 
+  const readCursorsJson = (): string => {
+    const value = settingsScope.get() as { cursorsJson?: unknown } | null
+    return value !== null && typeof value === 'object' && typeof value.cursorsJson === 'string' ? value.cursorsJson : ''
+  }
+
+  const persistCursors = async (cursors: Record<string, FeedCursor>): Promise<void> => {
+    try {
+      await settingsScope.update({ cursorsJson: JSON.stringify(cursors) })
+    } catch (error) {
+      throw new Error('写入增量游标失败（可能已被其他会话修改，请重试）：' + (error instanceof Error ? error.message : String(error)))
+    }
+  }
+
   const rssFetch: RssToolDefinition = {
     name: 'rss_fetch',
-    description: '抓取并解析一个 RSS/Atom 订阅源，返回源信息与最新条目（标题、链接、guid、发布时间、作者、摘要、分类、附件）。url 与 name 至少给一个：name 查已订阅源（同名多个时需改用 url），url 直接抓取任意地址。limit 控制返回条数（1-100，默认 20），超过部分以 truncated=true 提示。',
+    description: '抓取并解析一个 RSS/Atom 订阅源，返回源信息与最新条目（标题、链接、guid、发布时间、作者、摘要、分类、附件）。url 与 name 至少给一个：name 查已订阅源（同名多个时需改用 url），url 直接抓取任意地址。limit 控制返回条数（1-100，默认 20），超过部分以 truncated=true 提示。incremental=true 时启用增量模式：只返回上次抓取以来的新条目（按条目 id 去重，游标持久化在 settings），适合定时巡检省 token。',
     parameters: compileParameters({
       url: { type: 'string', description: '订阅源地址（可选，与 name 至少给一个）。' },
       name: { type: 'string', description: '已订阅源的名字（可选，可用 rss_list 查看）。' },
       limit: { type: 'integer', description: '返回条数，1-100，默认 20。' },
+      incremental: { type: 'boolean', description: '增量模式：只返回上次抓取后的新条目（默认 false）。' },
     }),
     output: {
       schema: fetchSchema,
@@ -464,10 +637,19 @@ export function buildRssTools(config: ResolvedRssConfig, settingsScope: RssSetti
       }
       assertHttpUrl(url)
       const limit = clampedInteger(args, 'limit', 20, 1, 100)
+      const incremental = args.incremental === true
       const { xml, finalUrl } = await fetchFeedXml(url, cfg, fetchImpl)
       const parsed = parseFeed(xml, finalUrl)
-      const entries = parsed.entries.slice(0, limit)
-      return { url: finalUrl, feed: parsed.feed, entries, truncated: parsed.entries.length > limit }
+      if (!incremental) {
+        const entries = parsed.entries.slice(0, limit)
+        return { url: finalUrl, feed: parsed.feed, entries, truncated: parsed.entries.length > limit }
+      }
+      const cursors = parseCursors(readCursorsJson())
+      const fresh = filterNewEntries(cursors[url], parsed.entries)
+      cursors[url] = advanceCursor(cursors[url], parsed.entries, new Date().toISOString())
+      await persistCursors(cursors)
+      const entries = fresh.slice(0, limit)
+      return { url: finalUrl, feed: parsed.feed, entries, truncated: fresh.length > limit, incremental: true, newCount: fresh.length }
     },
     timeoutMs: TIMEOUT_MS,
   }
@@ -551,5 +733,94 @@ export function buildRssTools(config: ResolvedRssConfig, settingsScope: RssSetti
     timeoutMs: TIMEOUT_MS,
   }
 
-  return [rssList, rssAdd, rssRemove, rssFetch, rssCheck, rssOpmlExport, rssOpmlImport]
+  const rssSearch: RssToolDefinition = {
+    name: 'rss_search',
+    description: '跨订阅源搜索条目：实时抓取已订阅源，对标题/摘要/正文/作者/分类做不区分大小写的关键词匹配。query 必填；name 或 url 可限定单个订阅；since 过滤发布日期（如 2026-08-01）；limit 控制返回条数（1-50，默认 20）。个别源抓取失败会单独报告，不影响其他源的搜索。',
+    parameters: compileParameters({
+      query: { type: 'string', required: true, description: '搜索关键词（必填，不区分大小写）。' },
+      name: { type: 'string', description: '只搜索这个名字的订阅（可选）。' },
+      url: { type: 'string', description: '只搜索这个地址的订阅（可选）。' },
+      since: { type: 'string', description: '只要该日期之后发布的条目（可选，如 2026-08-01）。' },
+      limit: { type: 'integer', description: '返回条数，1-50，默认 20。' },
+    }),
+    output: {
+      schema: searchSchema,
+      render: renderSearch,
+    },
+    async execute(rawArgs: unknown) {
+      const args = asRecord(rawArgs)
+      const query = requiredString(args, 'query', '搜索关键词').toLowerCase()
+      const limit = clampedInteger(args, 'limit', 20, 1, 50)
+      const sinceMs = parseSinceMs(optionalString(args, 'since'))
+      const urlFilter = optionalString(args, 'url')
+      const nameFilter = optionalString(args, 'name')
+
+      let targets = getFeeds()
+      if (urlFilter !== undefined) targets = targets.filter((feed) => feed.url.toLowerCase() === urlFilter.toLowerCase())
+      if (nameFilter !== undefined) targets = findFeedsByName(targets, nameFilter)
+      if (targets.length === 0) {
+        if (urlFilter !== undefined || nameFilter !== undefined) {
+          throw new Error('没有找到匹配的订阅。可用 rss_list 查看订阅列表。')
+        }
+        throw new Error('当前还没有订阅。请先用 rss_add 添加订阅。')
+      }
+
+      const hits: Array<Record<string, unknown>> = []
+      const failedFeeds: Array<Record<string, unknown>> = []
+      for (const feed of targets) {
+        if (hits.length >= limit) break
+        try {
+          const { xml, finalUrl } = await fetchFeedXml(feed.url, cfg, fetchImpl)
+          const parsed = parseFeed(xml, finalUrl)
+          for (const entry of parsed.entries) {
+            const rec = asRecord(entry)
+            const at = Date.parse(typeof rec.pubDate === 'string' ? rec.pubDate : '')
+            if (sinceMs !== null && !Number.isNaN(at) && at < sinceMs) continue
+            if (entryMatches(entry, query)) {
+              hits.push({ feedName: feed.name, feedUrl: feed.url, ...rec })
+              if (hits.length >= limit) break
+            }
+          }
+        } catch (error) {
+          failedFeeds.push({ url: feed.url, name: feed.name, error: error instanceof Error ? error.message : String(error) })
+        }
+      }
+      return { count: hits.length, hits, failedFeeds }
+    },
+    timeoutMs: Math.min(300000, Math.max(TIMEOUT_MS, cfg.timeoutMs * 10)),
+  }
+
+  const rssHealth: RssToolDefinition = {
+    name: 'rss_health',
+    description: 'dsh-rss 自检：检查配置有效性、订阅数量、增量游标与解析器自检（不发任何网络请求）。遇到问题时先运行本工具定位。',
+    parameters: compileParameters({}),
+    output: {
+      schema: healthSchema,
+      render: renderHealth,
+    },
+    async execute() {
+      const feeds = getFeeds()
+      const settingsValue = settingsScope.get() as { cursorsJson?: unknown } | null
+      const cursorsJson = settingsValue !== null && typeof settingsValue === 'object' && typeof settingsValue.cursorsJson === 'string' ? settingsValue.cursorsJson : ''
+      let parserSelfTest = false
+      try {
+        const sample = parseFeed('<?xml version="1.0"?><rss version="2.0"><channel><title>selftest</title><item><title>item</title></item></channel></rss>', 'https://selftest.local/')
+        parserSelfTest = sample.entries.length === 1 && sample.feed.feedType === 'rss'
+      } catch {
+        parserSelfTest = false
+      }
+      return {
+        ok: parserSelfTest,
+        plugin: 'dsh-rss',
+        feedCount: feeds.length,
+        proxyConfigured: cfg.proxyUrl !== '',
+        cursorCount: Object.keys(parseCursors(cursorsJson)).length,
+        parserSelfTest,
+        config: { timeoutMs: cfg.timeoutMs, maxBodyBytes: cfg.maxBodyBytes, userAgent: cfg.userAgent },
+      }
+    },
+    timeoutMs: TIMEOUT_MS,
+  }
+
+  return [rssList, rssAdd, rssRemove, rssFetch, rssCheck, rssOpmlExport, rssOpmlImport, rssSearch, rssHealth]
 }
