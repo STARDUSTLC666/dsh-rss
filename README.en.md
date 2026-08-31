@@ -1,5 +1,7 @@
 # dsh-rss
 
+![npm](https://img.shields.io/npm/v/dsh-rss) ![downloads](https://img.shields.io/npm/dm/dsh-rss) ![license](https://img.shields.io/github/license/STARDUSTLC666/dsh-rss) ![stars](https://img.shields.io/github/stars/STARDUSTLC666/dsh-rss?style=social)
+
 [![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
 
 DSH (DeepSeek Harness) plugin for RSS/Atom subscriptions: manage feeds, fetch and parse RSS 0.9x / 1.0 / 2.0 and Atom, with OPML bulk import/export, exposing seven model-facing tools.
