@@ -6,7 +6,7 @@ DSH (DeepSeek Harness) plugin for RSS/Atom subscriptions: manage feeds, fetch an
 
 ## Compatibility
 
-Verified against `@deepseek-ai/dsh@0.1.1-rc.2` on 2026-08-26. Built for the cordis patch-bundle plugin model (`cordis.patch.yml` + `dsh.bundle.patch`). No runtime imports of `@deepseek-ai/*` internals.
+Verified against `@deepseek-ai/dsh@0.1.2-alpha.2` on 2026-08-31. Built for the cordis patch-bundle plugin model (`cordis.patch.yml` + `dsh.bundle.patch`). No runtime imports of `@deepseek-ai/*` internals.
 
 ## Installation
 
