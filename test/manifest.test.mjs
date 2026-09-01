@@ -34,5 +34,5 @@ test('cordis.patch.yml 插入行名为 dsh-rss', () => {
 test('名称与版本正确', () => {
   const pkg = require('../package.json')
   assert.equal(pkg.name, 'dsh-rss')
-  assert.match(pkg.version, /^\d+\.\d+\.\d+$/)
+  assert.equal(pkg.version, '0.3.0')
 })
