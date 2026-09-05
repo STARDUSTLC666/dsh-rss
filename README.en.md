@@ -8,7 +8,11 @@ DSH (DeepSeek Harness) plugin for RSS/Atom subscriptions: manage feeds, fetch an
 
 ## Compatibility
 
-Verified against `@deepseek-ai/dsh@0.1.2-alpha.2` on 2026-08-31. Built for the cordis patch-bundle plugin model (`cordis.patch.yml` + `dsh.bundle.patch`). No runtime imports of `@deepseek-ai/*` internals.
+Adapted to the tool execution contracts in `@deepseek-ai/dsh@0.1.3-alpha.1`. Built for the cordis patch-bundle plugin model (`cordis.patch.yml` + `dsh.bundle.patch`). No runtime imports of `@deepseek-ai/*` internals.
+
+Fetches honor the Harness cancellation signal through DNS, response streaming, and cross-feed searches. Hostname preflight checks reject loopback, private, and link-local addresses by default, including redirect destinations. Set `allowPrivateNetwork: true` for trusted internal feeds.
+
+`rss_opml_export.path` is relative to the calling session's workspace, with an existing parent directory. Absolute paths, traversal, and links outside the workspace are rejected; the result returns the absolute written path. File writes request Harness approval by default (`opmlWriteApproval: false` disables this gate). Omit `path` to return only OPML text.
 
 ## Installation
 
@@ -88,7 +92,7 @@ Most feeds are reachable directly; a few require a special proxy from your netwo
 
 ```bash
 pnpm install
-pnpm test       # builds + 55 tests
+pnpm test       # build + offline tests with explicit fetch and DNS fixtures
 ```
 
 ## License

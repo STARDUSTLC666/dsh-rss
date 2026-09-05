@@ -1,7 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { buildRssTools, resolveConfig } from '../lib/index.js'
+import { resolveConfig } from '../lib/index.js'
+import { buildRssTools } from './helpers.mjs'
 
 const read = (name) => readFileSync(new URL('./fixtures/' + name, import.meta.url), 'utf8')
 

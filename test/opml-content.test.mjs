@@ -80,15 +80,18 @@ test('rss_opml_export / rss_opml_import 工具链路', async () => {
   assert.equal(imported.totalCount, 2)
 })
 
-test('rss_opml_export 写文件路径', async () => {
+test('rss_opml_export 写入调用会话工作区内的相对路径', async (t) => {
   const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'dsh-rss-opml-'))
+  t.after(() => fs.promises.rm(dir, { recursive: true, force: true }))
   const target = path.join(dir, 'feeds.opml')
   const scope = { feedsYaml: '', get() { return { feedsYaml: this.feedsYaml } }, async update() {} }
   const tools = buildRssTools(cfg, scope)
-  const exported = await tools.find((t) => t.name === 'rss_opml_export').execute({ path: target })
+  const exported = await tools.find((t) => t.name === 'rss_opml_export').execute({ path: 'feeds.opml' }, {
+    signal: new AbortController().signal,
+    agent: { session: { header: { cwd: dir } } },
+  })
   assert.equal(exported.path, target)
   assert.match(await fs.promises.readFile(target, 'utf8'), /<opml version="2\.0">/)
-  await fs.promises.rm(dir, { recursive: true, force: true })
 })
 
 test('rss_opml_import 空/非法 OPML 抛中文错误', async () => {

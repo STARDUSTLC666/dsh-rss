@@ -11,6 +11,8 @@ export interface RssConfig {
     maxBodyBytes?: number;
     userAgent?: string;
     feedsYaml?: string;
+    allowPrivateNetwork?: boolean;
+    opmlWriteApproval?: boolean;
 }
 /** 解析后的配置：所有字段都有值。 */
 export interface ResolvedRssConfig {
@@ -19,6 +21,8 @@ export interface ResolvedRssConfig {
     maxBodyBytes: number;
     userAgent: string;
     feedsYaml: string;
+    allowPrivateNetwork: boolean;
+    opmlWriteApproval: boolean;
 }
 /**
  * 解析并校验配置。

@@ -55,13 +55,13 @@ test('apply 注册 settings 命名空间并注入 base feedsYaml', () => {
   assert.equal(reg.options.applies, 'live')
 })
 
-test('apply 在配置缺失/非法时不抛，仅告警', () => {
+test('apply 在配置缺失时可加载，非法配置在注册前被拒绝', () => {
   const first = makeFakeCtx()
   assert.doesNotThrow(() => apply(first.ctx, {}))
   assert.equal(first.registered.length, 9)
   const second = makeFakeCtx()
-  assert.doesNotThrow(() => apply(second.ctx, { timeoutMs: -1 }))
-  assert.equal(second.registered.length, 9)
+  assert.throws(() => apply(second.ctx, { timeoutMs: -1 }), /timeoutMs/)
+  assert.equal(second.registered.length, 0)
 })
 
 test('dispose 触发时卸载全部工具', () => {

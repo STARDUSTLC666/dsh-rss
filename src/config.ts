@@ -12,6 +12,8 @@ export interface RssConfig {
   maxBodyBytes?: number
   userAgent?: string
   feedsYaml?: string
+  allowPrivateNetwork?: boolean
+  opmlWriteApproval?: boolean
 }
 
 /** 解析后的配置：所有字段都有值。 */
@@ -21,14 +23,34 @@ export interface ResolvedRssConfig {
   maxBodyBytes: number
   userAgent: string
   feedsYaml: string
+  allowPrivateNetwork: boolean
+  opmlWriteApproval: boolean
 }
 
 const DEFAULT_TIMEOUT_MS = 15000
 const DEFAULT_MAX_BODY_BYTES = 5 * 1024 * 1024
-const DEFAULT_USER_AGENT = 'dsh-rss/0.2.0 (DeepSeek Harness RSS plugin)'
+const DEFAULT_USER_AGENT = 'dsh-rss/0.3.1 (DeepSeek Harness RSS plugin)'
 
-function optionalString(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined
+function configRecord(config: RssConfig | undefined | null): Record<string, unknown> {
+  if (config === undefined || config === null) return {}
+  if (typeof config !== 'object' || Array.isArray(config)) {
+    throw new Error('dsh-rss config 必须是对象。')
+  }
+  return config as Record<string, unknown>
+}
+
+function optionalString(config: Record<string, unknown>, key: string): string | undefined {
+  const value = config[key]
+  if (value === undefined) return undefined
+  if (typeof value !== 'string') throw new Error(key + ' 必须是字符串。')
+  return value
+}
+
+function optionalBoolean(config: Record<string, unknown>, key: string, fallback: boolean): boolean {
+  const value = config[key]
+  if (value === undefined) return fallback
+  if (typeof value !== 'boolean') throw new Error(key + ' 必须是 true 或 false。')
+  return value
 }
 
 /**
@@ -37,26 +59,34 @@ function optionalString(value: unknown): string | undefined {
  * @throws 配置值非法时抛出中文错误。
  */
 export function resolveConfig(config: RssConfig | undefined | null): ResolvedRssConfig {
-  const cfg = config ?? {}
-  const proxyUrl = (optionalString(cfg.proxyUrl) ?? '').trim()
-  if (proxyUrl !== '' && !/^https?:\/\//i.test(proxyUrl)) {
-    throw new Error('proxyUrl 必须是 http(s):// 开头的地址，例如 http://127.0.0.1:7890。')
+  const cfg = configRecord(config)
+  const proxyUrl = (optionalString(cfg, 'proxyUrl') ?? '').trim()
+  if (proxyUrl !== '') {
+    try {
+      const parsed = new URL(proxyUrl)
+      if ((parsed.protocol !== 'http:' && parsed.protocol !== 'https:') || parsed.hostname === '') throw new Error()
+    } catch {
+      throw new Error('proxyUrl 必须是有效的 http(s) 地址，例如 http://127.0.0.1:7890。')
+    }
   }
   let timeoutMs = DEFAULT_TIMEOUT_MS
   if (cfg.timeoutMs !== undefined) {
-    if (typeof cfg.timeoutMs !== 'number' || !Number.isFinite(cfg.timeoutMs) || cfg.timeoutMs <= 0) {
-      throw new Error('timeoutMs 必须是大于 0 的数字（毫秒），例如 15000。')
+    if (typeof cfg.timeoutMs !== 'number' || !Number.isInteger(cfg.timeoutMs) || cfg.timeoutMs < 1000 || cfg.timeoutMs > 120000) {
+      throw new Error('timeoutMs 必须是 1000 到 120000 之间的整数（毫秒），例如 15000。')
     }
-    timeoutMs = Math.min(120000, Math.max(1000, Math.round(cfg.timeoutMs)))
+    timeoutMs = cfg.timeoutMs
   }
   let maxBodyBytes = DEFAULT_MAX_BODY_BYTES
   if (cfg.maxBodyBytes !== undefined) {
-    if (typeof cfg.maxBodyBytes !== 'number' || !Number.isFinite(cfg.maxBodyBytes) || cfg.maxBodyBytes <= 0) {
-      throw new Error('maxBodyBytes 必须是大于 0 的数字（字节），例如 5242880。')
+    if (typeof cfg.maxBodyBytes !== 'number' || !Number.isInteger(cfg.maxBodyBytes) || cfg.maxBodyBytes < 1024 * 1024 || cfg.maxBodyBytes > 50 * 1024 * 1024) {
+      throw new Error('maxBodyBytes 必须是 1048576 到 52428800 之间的整数（字节），例如 5242880。')
     }
-    maxBodyBytes = Math.min(50 * 1024 * 1024, Math.max(1024 * 1024, Math.round(cfg.maxBodyBytes)))
+    maxBodyBytes = cfg.maxBodyBytes
   }
-  const userAgent = optionalString(cfg.userAgent) ?? DEFAULT_USER_AGENT
-  const feedsYaml = optionalString(cfg.feedsYaml) ?? ''
-  return { proxyUrl, timeoutMs, maxBodyBytes, userAgent, feedsYaml }
+  const userAgent = (optionalString(cfg, 'userAgent') ?? DEFAULT_USER_AGENT).trim()
+  if (userAgent === '') throw new Error('userAgent 不能为空字符串。')
+  const feedsYaml = optionalString(cfg, 'feedsYaml') ?? ''
+  const allowPrivateNetwork = optionalBoolean(cfg, 'allowPrivateNetwork', false)
+  const opmlWriteApproval = optionalBoolean(cfg, 'opmlWriteApproval', true)
+  return { proxyUrl, timeoutMs, maxBodyBytes, userAgent, feedsYaml, allowPrivateNetwork, opmlWriteApproval }
 }

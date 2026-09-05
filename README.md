@@ -13,7 +13,11 @@ DSH（DeepSeek Harness）的 RSS/Atom 订阅工具插件：管理订阅源，抓
 
 ## 兼容性
 
-在 `@deepseek-ai/dsh@0.1.2-alpha.2` 上验证（2026-08-31）。遵循 cordis 组合包补丁模型（`cordis.patch.yml` + `dsh.bundle.patch`），运行时不 import 任何 `@deepseek-ai/*` 内部模块。
+按 `@deepseek-ai/dsh@0.1.3-alpha.1` 的工具执行接口适配。遵循 cordis 组合包补丁模型（`cordis.patch.yml` + `dsh.bundle.patch`），运行时不 import 任何 `@deepseek-ai/*` 内部模块。
+
+抓取接收 Harness 的取消信号，取消 DNS、网络读取或跨源搜索时保留原始取消原因。默认预检域名解析结果并拒绝回环、私网和链路本地地址；每次重定向都重新校验。可信内网源可显式配置 `allowPrivateNetwork: true`。
+
+`rss_opml_export.path` 必须相对本次调用的会话工作区，父目录须已存在；工具拒绝绝对路径、目录穿越和指向工作区外的链接，并返回实际写入文件的绝对路径。文件写入默认通过 Harness 审批门，`opmlWriteApproval: false` 可关闭该门；省略 `path` 时仅返回 OPML 文本。
 
 ## 安装
 
@@ -95,7 +99,7 @@ rss_opml_import { opml: "<?xml version=\"1.0\"?>..." }
 
 ```bash
 pnpm install
-pnpm test       # 构建 + 63 个测试
+pnpm test       # 构建 + 离线测试（fetch 与 DNS 均使用夹具）
 ```
 
 发布前门禁：危险模式扫描、manifest 自检、`pnpm audit --prod`、全量测试，以及全新 profile 的真实启动冒烟测试。

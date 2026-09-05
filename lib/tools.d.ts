@@ -5,6 +5,10 @@
  * @module dsh-rss/tools
  */
 import { type ResolvedRssConfig } from './config.js';
+import type { RssToolExecution } from './execution.js';
+import { type FetchLike, type DnsLookupLike } from './network.js';
+export type { RssToolExecution } from './execution.js';
+export { isBlockedNetworkAddress, type FetchLike, type DnsLookupLike } from './network.js';
 /** 模型可见的内容块。 */
 export interface ContentBlock {
     type: 'text';
@@ -23,7 +27,7 @@ export interface RssToolDefinition {
         schema: Record<string, unknown>;
         render(args: unknown, value: unknown): ContentBlock[];
     };
-    execute(args: unknown, exec: unknown): Promise<unknown>;
+    execute(args: unknown, exec?: RssToolExecution): Promise<unknown>;
     timeoutMs?: number;
 }
 /** 工具所需的 settings scope 最小面。 */
@@ -31,12 +35,6 @@ export interface RssSettingsScope {
     get(): unknown;
     update(patch: Record<string, unknown>): Promise<void>;
 }
-/** 可注入的 fetch 实现（测试用假 fetch 替换真网络）。 */
-export type FetchLike = (url: string, init?: {
-    headers?: Record<string, string>;
-    redirect?: string;
-    signal?: AbortSignal;
-}) => Promise<Response>;
 /** 单个订阅源的增量游标：已知条目 id 列表与更新时间。 */
 export interface FeedCursor {
     guids: string[];
@@ -49,9 +47,10 @@ export declare function advanceCursor(prev: FeedCursor | undefined, entries: unk
 /** 用游标过滤出未见过的条目（无游标时全部视为新）。 */
 export declare function filterNewEntries(cursor: FeedCursor | undefined, entries: unknown[]): unknown[];
 /**
- * 构建七个工具定义。每个 execute 惰性读取配置与订阅，错误时抛出中文指引。
+ * 构建九个工具定义。每个 execute 惰性读取配置与订阅，错误时抛出中文指引。
  * @param config - 已解析配置。
  * @param settingsScope - dsh-rss settings scope（get/update）。
  * @param fetchImpl - 可选注入的 fetch（测试用），缺省按 proxyUrl 构造。
+ * @param lookupImpl - 可选注入的 DNS 查询（测试用），缺省使用系统 DNS。
  */
-export declare function buildRssTools(config: ResolvedRssConfig, settingsScope: RssSettingsScope, fetchImpl?: FetchLike): RssToolDefinition[];
+export declare function buildRssTools(config: ResolvedRssConfig, settingsScope: RssSettingsScope, fetchImpl?: FetchLike, lookupImpl?: DnsLookupLike): RssToolDefinition[];

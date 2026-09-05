@@ -10,7 +10,11 @@ import { type ResolvedRssConfig } from './config.js'
 import { addFeed, findFeedsByName, parseFeedsYaml, removeFeed, serializeFeeds, type Feed } from './feeds.js'
 import { buildOpml, importOpmlFeeds, parseOpml } from './opml.js'
 import { parseFeed } from './parser.js'
-import { createProxyFetch } from './proxy-fetch.js'
+import type { RssToolExecution } from './execution.js'
+import { assertHttpUrl, fetchFeedXml, type FetchLike, type DnsLookupLike } from './network.js'
+import { resolveOpmlOutputPath } from './workspace.js'
+export type { RssToolExecution } from './execution.js'
+export { isBlockedNetworkAddress, type FetchLike, type DnsLookupLike } from './network.js'
 
 /** 模型可见的内容块。 */
 export interface ContentBlock {
@@ -27,7 +31,7 @@ export interface RssToolDefinition {
     schema: Record<string, unknown>
     render(args: unknown, value: unknown): ContentBlock[]
   }
-  execute(args: unknown, exec: unknown): Promise<unknown>
+  execute(args: unknown, exec?: RssToolExecution): Promise<unknown>
   timeoutMs?: number
 }
 
@@ -37,12 +41,7 @@ export interface RssSettingsScope {
   update(patch: Record<string, unknown>): Promise<void>
 }
 
-/** 可注入的 fetch 实现（测试用假 fetch 替换真网络）。 */
-export type FetchLike = (url: string, init?: { headers?: Record<string, string>; redirect?: string; signal?: AbortSignal }) => Promise<Response>
-
 const TIMEOUT_MS = 30000
-const PROXY_HINT = '。若该订阅源需要特殊代理（梯子）才能访问，请在 cordis.patch.yml 里给 dsh-rss 配置 proxyUrl（如 http://127.0.0.1:7890）后重启。'
-
 /**
  * 编译作者 DSL 为原始 JSON Schema（正是 defineTool 存为 definition.parameters 的值）。
  * 原生线路会原样下发该值，原始 DSL 会被模型 API 拒绝（schema must be a JSON Schema）。
@@ -86,54 +85,6 @@ function clampedInteger(args: Record<string, unknown>, key: string, fallback: nu
   const value = args[key]
   if (typeof value !== 'number' || !Number.isInteger(value)) return fallback
   return Math.min(max, Math.max(min, value))
-}
-
-function assertHttpUrl(url: string): void {
-  if (!/^https?:\/\//i.test(url)) {
-    throw new Error('订阅源地址必须是 http(s):// 开头的完整地址，例如 https://example.com/feed.xml。')
-  }
-}
-
-/** 构造默认 fetch：配置了 proxyUrl 时走插件级代理。 */
-function makeFetch(cfg: ResolvedRssConfig): FetchLike {
-  if (cfg.proxyUrl === '') return globalThis.fetch as unknown as FetchLike
-  return createProxyFetch(cfg.proxyUrl) as unknown as FetchLike
-}
-
-/**
- * 抓取订阅源 XML：校验地址、限时、限制体积、剥 BOM。
- */
-async function fetchFeedXml(url: string, cfg: ResolvedRssConfig, fetchImpl?: FetchLike): Promise<{ xml: string; finalUrl: string }> {
-  assertHttpUrl(url)
-  const fetcher = fetchImpl ?? makeFetch(cfg)
-  let response: Response
-  try {
-    response = await fetcher(url, {
-      headers: {
-        'user-agent': cfg.userAgent,
-        accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*',
-      },
-      redirect: 'follow',
-      signal: AbortSignal.timeout(cfg.timeoutMs),
-    })
-  } catch (error) {
-    throw new Error('抓取失败：' + (error instanceof Error ? error.message : String(error)) + PROXY_HINT)
-  }
-  if (!response.ok) {
-    throw new Error('抓取失败：服务器返回 HTTP ' + response.status + '。')
-  }
-  let bytes: Uint8Array
-  try {
-    bytes = new Uint8Array(await response.arrayBuffer())
-  } catch (error) {
-    throw new Error('读取订阅源内容失败：' + (error instanceof Error ? error.message : String(error)))
-  }
-  if (bytes.length > cfg.maxBodyBytes) {
-    throw new Error('订阅源内容超过 ' + cfg.maxBodyBytes + ' 字节上限，已停止读取。')
-  }
-  let xml = new TextDecoder('utf-8', { fatal: false }).decode(bytes)
-  xml = xml.replace(/^\uFEFF/, '')
-  return { xml, finalUrl: response.url || url }
 }
 
 // ---------- 输出 JSON Schema ----------
@@ -507,12 +458,18 @@ function renderHealth(_args: unknown, value: unknown): ContentBlock[] {
 // ---------- 工具构建 ----------
 
 /**
- * 构建七个工具定义。每个 execute 惰性读取配置与订阅，错误时抛出中文指引。
+ * 构建九个工具定义。每个 execute 惰性读取配置与订阅，错误时抛出中文指引。
  * @param config - 已解析配置。
  * @param settingsScope - dsh-rss settings scope（get/update）。
  * @param fetchImpl - 可选注入的 fetch（测试用），缺省按 proxyUrl 构造。
+ * @param lookupImpl - 可选注入的 DNS 查询（测试用），缺省使用系统 DNS。
  */
-export function buildRssTools(config: ResolvedRssConfig, settingsScope: RssSettingsScope, fetchImpl?: FetchLike): RssToolDefinition[] {
+export function buildRssTools(
+  config: ResolvedRssConfig,
+  settingsScope: RssSettingsScope,
+  fetchImpl?: FetchLike,
+  lookupImpl?: DnsLookupLike,
+): RssToolDefinition[] {
   const cfg = config
 
   const getFeeds = (): Feed[] => {
@@ -537,7 +494,7 @@ export function buildRssTools(config: ResolvedRssConfig, settingsScope: RssSetti
       schema: listSchema,
       render: renderList,
     },
-    async execute(rawArgs: unknown) {
+    async execute() {
       const feeds = getFeeds()
       return { count: feeds.length, feeds }
     },
@@ -556,20 +513,20 @@ export function buildRssTools(config: ResolvedRssConfig, settingsScope: RssSetti
       schema: addSchema,
       render: renderAdd,
     },
-    async execute(rawArgs: unknown) {
+    async execute(rawArgs: unknown, exec?: RssToolExecution) {
       const args = asRecord(rawArgs)
       const url = requiredString(args, 'url', '订阅源地址')
       assertHttpUrl(url)
       const name = optionalString(args, 'name') ?? ''
       const category = optionalString(args, 'category') ?? ''
-      const { xml, finalUrl } = await fetchFeedXml(url, cfg, fetchImpl)
+      const { xml, finalUrl } = await fetchFeedXml(url, cfg, exec, fetchImpl, lookupImpl)
       const parsed = parseFeed(xml, finalUrl)
       const effectiveName = name !== '' ? name : parsed.feed.title
       const { feeds, added, existed } = addFeed(getFeeds(), url, effectiveName, category)
       await persistFeeds(feeds)
       return { added, existed, count: feeds.length, feedTitle: parsed.feed.title, feedType: parsed.feed.feedType }
     },
-    timeoutMs: TIMEOUT_MS,
+    timeoutMs: cfg.timeoutMs,
   }
 
   const rssRemove: RssToolDefinition = {
@@ -618,7 +575,7 @@ export function buildRssTools(config: ResolvedRssConfig, settingsScope: RssSetti
       schema: fetchSchema,
       render: renderFetch,
     },
-    async execute(rawArgs: unknown) {
+    async execute(rawArgs: unknown, exec?: RssToolExecution) {
       const args = asRecord(rawArgs)
       let url = optionalString(args, 'url')
       const name = optionalString(args, 'name')
@@ -638,7 +595,7 @@ export function buildRssTools(config: ResolvedRssConfig, settingsScope: RssSetti
       assertHttpUrl(url)
       const limit = clampedInteger(args, 'limit', 20, 1, 100)
       const incremental = args.incremental === true
-      const { xml, finalUrl } = await fetchFeedXml(url, cfg, fetchImpl)
+      const { xml, finalUrl } = await fetchFeedXml(url, cfg, exec, fetchImpl, lookupImpl)
       const parsed = parseFeed(xml, finalUrl)
       if (!incremental) {
         const entries = parsed.entries.slice(0, limit)
@@ -651,7 +608,7 @@ export function buildRssTools(config: ResolvedRssConfig, settingsScope: RssSetti
       const entries = fresh.slice(0, limit)
       return { url: finalUrl, feed: parsed.feed, entries, truncated: fresh.length > limit, incremental: true, newCount: fresh.length }
     },
-    timeoutMs: TIMEOUT_MS,
+    timeoutMs: cfg.timeoutMs,
   }
 
   const rssCheck: RssToolDefinition = {
@@ -664,11 +621,11 @@ export function buildRssTools(config: ResolvedRssConfig, settingsScope: RssSetti
       schema: checkSchema,
       render: renderCheck,
     },
-    async execute(rawArgs: unknown) {
+    async execute(rawArgs: unknown, exec?: RssToolExecution) {
       const args = asRecord(rawArgs)
       const url = requiredString(args, 'url', '订阅源地址')
       assertHttpUrl(url)
-      const { xml, finalUrl } = await fetchFeedXml(url, cfg, fetchImpl)
+      const { xml, finalUrl } = await fetchFeedXml(url, cfg, exec, fetchImpl, lookupImpl)
       const parsed = parseFeed(xml, finalUrl)
       return {
         ok: true,
@@ -679,7 +636,7 @@ export function buildRssTools(config: ResolvedRssConfig, settingsScope: RssSetti
         description: parsed.feed.description,
       }
     },
-    timeoutMs: TIMEOUT_MS,
+    timeoutMs: cfg.timeoutMs,
   }
 
   const rssOpmlExport: RssToolDefinition = {
@@ -692,15 +649,19 @@ export function buildRssTools(config: ResolvedRssConfig, settingsScope: RssSetti
       schema: opmlExportSchema,
       render: renderOpmlExport,
     },
-    async execute(rawArgs: unknown) {
+    async execute(rawArgs: unknown, exec?: RssToolExecution) {
       const args = asRecord(rawArgs)
       const feeds = getFeeds()
       const opml = buildOpml(feeds)
       const target = optionalString(args, 'path')
+      let outputPath = ''
       if (target !== undefined) {
-        await writeFile(target, opml, 'utf8')
+        exec?.signal.throwIfAborted()
+        outputPath = await resolveOpmlOutputPath(target, exec)
+        exec?.signal.throwIfAborted()
+        await writeFile(outputPath, opml, { encoding: 'utf8', signal: exec?.signal })
       }
-      return { opml, path: target ?? '', feedCount: feeds.length }
+      return { opml, path: outputPath, feedCount: feeds.length }
     },
     timeoutMs: TIMEOUT_MS,
   }
@@ -747,7 +708,7 @@ export function buildRssTools(config: ResolvedRssConfig, settingsScope: RssSetti
       schema: searchSchema,
       render: renderSearch,
     },
-    async execute(rawArgs: unknown) {
+    async execute(rawArgs: unknown, exec?: RssToolExecution) {
       const args = asRecord(rawArgs)
       const query = requiredString(args, 'query', '搜索关键词').toLowerCase()
       const limit = clampedInteger(args, 'limit', 20, 1, 50)
@@ -770,7 +731,7 @@ export function buildRssTools(config: ResolvedRssConfig, settingsScope: RssSetti
       for (const feed of targets) {
         if (hits.length >= limit) break
         try {
-          const { xml, finalUrl } = await fetchFeedXml(feed.url, cfg, fetchImpl)
+          const { xml, finalUrl } = await fetchFeedXml(feed.url, cfg, exec, fetchImpl, lookupImpl)
           const parsed = parseFeed(xml, finalUrl)
           for (const entry of parsed.entries) {
             const rec = asRecord(entry)
@@ -782,6 +743,7 @@ export function buildRssTools(config: ResolvedRssConfig, settingsScope: RssSetti
             }
           }
         } catch (error) {
+          exec?.signal.throwIfAborted()
           failedFeeds.push({ url: feed.url, name: feed.name, error: error instanceof Error ? error.message : String(error) })
         }
       }
