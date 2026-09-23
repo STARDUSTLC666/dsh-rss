@@ -28,10 +28,18 @@ type RssPreExecuteListener = (exec: RssPendingToolExecution, next: () => Promise
 /** 插件所需的最小 ctx 面（社区插件不依赖宿主内部类型）。 */
 export interface RssPluginContext {
     settings: {
-        register(ns: string, schema: unknown, options?: {
+        register?(ns: string, schema: unknown, options?: {
             base?: Record<string, unknown>;
             applies?: string;
         }): RssSettingsScope;
+        update?(ns: string, patch: Record<string, unknown>): Promise<void>;
+    };
+    fiber?: {
+        entry?: {
+            options: {
+                id: string;
+            };
+        };
     };
     tools: {
         register(definition: RssToolDefinition): () => void;

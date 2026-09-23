@@ -12,6 +12,7 @@ export interface RssConfig {
   maxBodyBytes?: number
   userAgent?: string
   feedsYaml?: string
+  cursorsJson?: string
   allowPrivateNetwork?: boolean
   opmlWriteApproval?: boolean
 }

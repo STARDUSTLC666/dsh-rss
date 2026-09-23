@@ -4,11 +4,11 @@
 
 [![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
 
-DSH (DeepSeek Harness) plugin for RSS/Atom subscriptions: manage feeds, fetch and parse RSS 0.9x / 1.0 / 2.0 and Atom, with OPML bulk import/export, exposing seven model-facing tools.
+DSH (DeepSeek Harness) plugin for RSS/Atom subscriptions: manage feeds, fetch and parse RSS 0.9x / 1.0 / 2.0 and Atom, with OPML bulk import/export, exposing nine model-facing tools.
 
 ## Compatibility
 
-Verified with official `@deepseek-ai/dsh@0.1.5-rc.1` and Node `24.16.0` on 2026-09-11: all 18 components load alongside Modlens, with passing tool-schema, skill-registration and offline read-only invocation checks. Uses the `cordis.patch.yml` + `dsh.bundle.patch` bundle model. Node requirements match this Harness release: 22.19 or later within 22.x, or 24 or later. Live external-service workflows require separate configuration and validation.
+Version 0.4.0 supports official-source Harness **0.1.7-alpha.2** (2026-09-23, with a local `Symbol.for` tool-scheduler fix). All 18 plugins load together; tool contracts, subscription updates and restart persistence pass in isolation. Live feeds require working network access. Requires Node 22.19 or later within 22.x, or 24 or later.
 
 Fetches honor the Harness cancellation signal through DNS, response streaming, and cross-feed searches. Hostname preflight checks reject loopback, private, and link-local addresses by default, including redirect destinations. Set `allowPrivateNetwork: true` for trusted internal feeds.
 
@@ -20,7 +20,7 @@ Fetches honor the Harness cancellation signal through DNS, response streaming, a
 dsh plugin --profile web add dsh-rss
 ```
 
-Restart the web service after installing.
+Restart the web service after installing. Ask your assistant to subscribe to an RSS URL or list your subscriptions; ordinary subscription management needs no configuration-file editing.
 
 ## Uninstall
 
@@ -61,6 +61,9 @@ Override the plugin row in your profile's `cordis.patch.yml` (the plugin also lo
 | `rss_opml_export` | Export subscriptions as OPML 2.0 text (optionally write a file) | `path` optional |
 | `rss_opml_import` | Bulk-import subscriptions from OPML 2.0 text | `opml` required |
 
+| `rss_search` | Search across feeds | `query` required; optional feed, date and limit filters |
+| `rss_health` | Check configuration, feeds and cursors offline | none |
+
 ### Examples
 
 ```text
@@ -73,7 +76,7 @@ rss_opml_import { opml: "<?xml version=\"1.0\"?>..." }
 
 ## Subscriptions
 
-Subscriptions live in the settings namespace `dsh-rss` (the `feedsYaml` field): `rss_add` / `rss_remove` read and write it automatically and changes persist across restarts. You can also pre-seed subscriptions via the `feedsYaml` config field. Use `url` to distinguish feeds that share a name.
+On Harness 0.1.7, subscriptions and read cursors are stored in the current profile’s `rss` entry. Changes apply immediately and survive restart. Default installations automatically import the retired `dsh-rss` section from `settings.yaml` or `settings.yaml.imported` once, preserving the original file and existing profile values. Older hosts retain their original settings storage. Use a URL to distinguish feeds with identical names.
 
 ## Proxy
 

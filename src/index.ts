@@ -8,8 +8,9 @@
  */
 
 import { resolveConfig, type RssConfig } from './config.js'
-import { RSS_SETTINGS_NAMESPACE, RssSettingsSchema } from './settings.js'
+import { RSS_SETTINGS_NAMESPACE, RssSettingsSchema, liveConfig } from './settings.js'
 import { buildRssTools, type RssSettingsScope, type RssToolDefinition } from './tools.js'
+import { installLegacySettingsImport } from './legacy-settings.js'
 
 /** cordis 服务注入：apply 里要用 ctx.settings 与 ctx.tools，必须显式声明，否则宿主会抛 cannot get property without inject。 */
 export const name = 'rss'
@@ -33,8 +34,10 @@ type RssPreExecuteListener = (
 /** 插件所需的最小 ctx 面（社区插件不依赖宿主内部类型）。 */
 export interface RssPluginContext {
   settings: {
-    register(ns: string, schema: unknown, options?: { base?: Record<string, unknown>; applies?: string }): RssSettingsScope
+    register?(ns: string, schema: unknown, options?: { base?: Record<string, unknown>; applies?: string }): RssSettingsScope
+    update?(ns: string, patch: Record<string, unknown>): Promise<void>
   }
+  fiber?: { entry?: { options: { id: string } } }
   tools: { register(definition: RssToolDefinition): () => void }
   on(event: 'tools/pre-execute', listener: RssPreExecuteListener): () => void
   on(event: 'dispose', listener: () => void): () => void
@@ -46,12 +49,20 @@ export interface RssPluginContext {
  * @param config - 插件配置（可缺省）。
  */
 export function apply(ctx: RssPluginContext, config?: RssConfig | null): void {
+  config = liveConfig(config ?? {})
   const cfg = resolveConfig(config)
+  installLegacySettingsImport(ctx, config, RSS_SETTINGS_NAMESPACE, 'rss', ['feedsYaml', 'cursorsJson'])
 
-  const settingsScope = ctx.settings.register(RSS_SETTINGS_NAMESPACE, RssSettingsSchema, {
+  const settingsScope: RssSettingsScope = typeof ctx.settings.register === 'function' ? ctx.settings.register(RSS_SETTINGS_NAMESPACE, RssSettingsSchema, {
     base: { feedsYaml: cfg.feedsYaml },
     applies: 'live',
-  })
+  }) : {
+    get: () => ({ feedsYaml: config?.feedsYaml ?? '', cursorsJson: config?.cursorsJson ?? '' }),
+    update: async patch => {
+      if (!ctx.settings.update) throw new Error('当前宿主不支持保存 RSS 配置')
+      await ctx.settings.update(ctx.fiber?.entry?.options.id ?? 'rss', patch)
+    },
+  }
 
   const disposers: Array<() => void> = []
   for (const definition of buildRssTools(cfg, settingsScope)) {

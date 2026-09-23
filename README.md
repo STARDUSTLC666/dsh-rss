@@ -13,7 +13,7 @@ DSH（DeepSeek Harness）的 RSS/Atom 订阅工具插件：管理订阅源，抓
 
 ## 兼容性
 
-已在官方 `@deepseek-ai/dsh@0.1.5-rc.1`、Node `24.16.0` 上验证（2026-09-11）：18 个组件与 Modlens 同载，工具 schema、技能注册及离线只读调用检查通过。采用 `cordis.patch.yml` + `dsh.bundle.patch` 组合包模型。Node 要求与该版本 Harness 一致：22.19 及以上的 22.x，或 24 及以上。外部服务的实际业务操作需按各组件配置单独验证。
+0.4.0 适配官方源码构建的 Harness **0.1.7-alpha.2**（2026-09-23，含本地工具调度器 `Symbol.for` 修复）。18 个插件同载、工具契约、订阅读写与重启持久化通过隔离验证；真实外部订阅源需要正常网络连接。Node 要求为 22.19 及以上的 22.x，或 24 及以上。
 
 抓取接收 Harness 的取消信号，取消 DNS、网络读取或跨源搜索时保留原始取消原因。默认预检域名解析结果并拒绝回环、私网和链路本地地址；每次重定向都重新校验。可信内网源可显式配置 `allowPrivateNetwork: true`。
 
@@ -25,7 +25,7 @@ DSH（DeepSeek Harness）的 RSS/Atom 订阅工具插件：管理订阅源，抓
 dsh plugin --profile web add dsh-rss
 ```
 
-安装后重启 Web 服务即可。
+安装后重启 Web 服务即可。直接对助手说「订阅这个 RSS 地址，命名为技术资讯」或「列出我的订阅」即可使用，日常增删订阅不需要编辑配置文件。
 
 ## 卸载
 
@@ -80,7 +80,7 @@ rss_opml_import { opml: "<?xml version=\"1.0\"?>..." }
 
 ## 订阅存储
 
-订阅列表保存在 settings 的 `dsh-rss` 命名空间（`feedsYaml` 字段）里：`rss_add` / `rss_remove` 会自动读写并持久化，重启后仍在；也可以在配置里用 `feedsYaml` 预置初始订阅。同名订阅请用 `url` 区分。
+Harness 0.1.7 把订阅列表和读取游标保存在当前 profile 的 `rss` 配置行；增删后立即生效，重启仍保留。默认安装会自动导入旧 `settings.yaml` 或 `settings.yaml.imported` 的 `dsh-rss` 数据一次，保留原文件，且不覆盖已有 profile 值。旧版宿主继续使用原 settings 存储。同名订阅请用 URL 区分。
 
 ## 特殊代理（梯子）
 

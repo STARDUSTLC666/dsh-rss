@@ -4,6 +4,21 @@
  * @module dsh-rss/settings
  */
 import z from 'schemastery'
+import modern from '@deepseek-ai/schemastery'
+
+export const Config = modern.object({
+  feedsYaml: modern.string().volatile(), cursorsJson: modern.string().volatile(),
+  proxyUrl: modern.string(), timeoutMs: modern.number(), maxBodyBytes: modern.number(),
+  userAgent: modern.string(), allowPrivateNetwork: modern.boolean(), opmlWriteApproval: modern.boolean(),
+  legacySettingsImported: modern.boolean().volatile(),
+})
+
+export function liveConfig<T extends object>(config: T): T {
+  return new Proxy(config, { get(target, key, receiver) {
+    const value: any = Reflect.get(target, key, receiver)
+    return value !== null && typeof value === 'object' && typeof value.get === 'function' ? value.get() : value
+  } })
+}
 
 /** 本插件拥有的 settings 文档命名空间。 */
 export const RSS_SETTINGS_NAMESPACE = 'dsh-rss'
