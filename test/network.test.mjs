@@ -21,6 +21,19 @@ test('DNS resolving to a private address never reaches fetch', async () => {
   assert.equal(fetches, 0)
 })
 
+test('proxy fake-IP DNS explains how to restore public resolution without allowing private networks', async () => {
+  for (const address of ['198.18.0.67', '198.19.255.254']) {
+    let fetched = false
+    await assert.rejects(fetchFeedXml(url, cfg, undefined, async () => { fetched = true; return new Response('') }, async () => [{ address, family: 4 }]), error => {
+      assert.match(error.message, /Fake-IP/)
+      assert.match(error.message, /真实 IP|fake-ip-filter/)
+      assert.doesNotMatch(error.message, /allowPrivateNetwork: true/)
+      return true
+    })
+    assert.equal(fetched, false)
+  }
+})
+
 test('redirect destinations are checked before the next request', async () => {
   let fetches = 0
   const fetcher = async (_url, init) => {

@@ -2,6 +2,12 @@
 
 # dsh-rss
 
+## 0.4.1 更新（2026-09-27）
+
+识别代理 Fake-IP 造成的订阅源解析问题，提示使用真实 DNS 地址；继续拒绝保留地址，无需放开内网访问。
+
+验证宿主：官方源码构建的 Harness 0.1.7-rc.2（保留本地工具调度器修复）。构建与自动测试通过；实际操作和外部服务限制见本轮验收记录。
+
 > **agent 的资讯雷达**：订阅管理 + RSS/Atom 抓取解析。
 
 ![npm version](https://img.shields.io/npm/v/dsh-rss?label=npm&color=blue) ![npm downloads](https://img.shields.io/npm/dm/dsh-rss) ![license](https://img.shields.io/npm/l/dsh-rss) ![stars](https://img.shields.io/github/stars/STARDUSTLC666/dsh-rss?style=social)

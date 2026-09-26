@@ -1,5 +1,11 @@
 # dsh-rss
 
+## 0.4.1 update (2026-09-27)
+
+Explains feed resolution failures caused by proxy Fake-IP DNS and suggests using a real DNS address while keeping reserved-address protection enabled.
+
+Validation host: Harness 0.1.7-rc.2 built from official sources, retaining the local tool-scheduler fix. Build and automated checks pass; interactive coverage and external-service limits are recorded in this release round.
+
 ![npm](https://img.shields.io/npm/v/dsh-rss) ![downloads](https://img.shields.io/npm/dm/dsh-rss) ![license](https://img.shields.io/github/license/STARDUSTLC666/dsh-rss) ![stars](https://img.shields.io/github/stars/STARDUSTLC666/dsh-rss?style=social)
 
 [![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
