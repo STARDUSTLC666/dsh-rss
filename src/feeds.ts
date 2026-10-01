@@ -70,18 +70,23 @@ export function serializeFeeds(feeds: Feed[]): string {
   return FEEDS_HEADER.join('\n') + body + '\n'
 }
 
-function sameUrl(a: string, b: string): boolean {
-  return a.trim().toLowerCase() === b.trim().toLowerCase()
+/** Normalize URL scheme, host and default port while preserving path/query case. */
+export function sameFeedUrl(a: string, b: string): boolean {
+  try {
+    return new URL(a.trim()).href === new URL(b.trim()).href
+  } catch {
+    return a.trim() === b.trim()
+  }
 }
 
 /**
- * 添加订阅：按 url（不区分大小写）去重；已存在时合并更新 name/category。
+ * 添加订阅：按 URL 去重，保留路径与查询值的大小写；已存在时合并更新 name/category。
  */
 export function addFeed(feeds: Feed[], url: string, name: string, category: string): { feeds: Feed[]; added: Feed; existed: boolean } {
   const cleanUrl = url.trim()
   const cleanName = name.trim()
   const cleanCategory = category.trim()
-  const existing = feeds.find((feed) => sameUrl(feed.url, cleanUrl))
+  const existing = feeds.find((feed) => sameFeedUrl(feed.url, cleanUrl))
   if (existing) {
     const merged: Feed = {
       url: existing.url,
@@ -96,7 +101,7 @@ export function addFeed(feeds: Feed[], url: string, name: string, category: stri
 }
 
 /**
- * 删除订阅：url 精确匹配（不区分大小写），或 name 匹配所有同名项（不区分大小写）。
+ * 删除订阅：URL 路径与查询值精确匹配，或 name 匹配所有同名项（不区分大小写）。
  * 两者都缺或没有匹配项时抛中文错误。
  */
 export function removeFeed(feeds: Feed[], url?: string, name?: string): { feeds: Feed[]; removed: Feed[] } {
@@ -107,7 +112,7 @@ export function removeFeed(feeds: Feed[], url?: string, name?: string): { feeds:
   }
   const removed: Feed[] = []
   const next = feeds.filter((feed) => {
-    const match = (cleanUrl !== '' && sameUrl(feed.url, cleanUrl)) || (cleanName !== '' && feed.name.toLowerCase() === cleanName.toLowerCase())
+    const match = (cleanUrl !== '' && sameFeedUrl(feed.url, cleanUrl)) || (cleanName !== '' && feed.name.toLowerCase() === cleanName.toLowerCase())
     if (match) removed.push(feed)
     return !match
   })

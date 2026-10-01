@@ -7,7 +7,7 @@
 
 import { writeFile } from 'node:fs/promises'
 import { type ResolvedRssConfig } from './config.js'
-import { addFeed, findFeedsByName, parseFeedsYaml, removeFeed, serializeFeeds, type Feed } from './feeds.js'
+import { addFeed, findFeedsByName, parseFeedsYaml, removeFeed, sameFeedUrl, serializeFeeds, type Feed } from './feeds.js'
 import { buildOpml, importOpmlFeeds, parseOpml } from './opml.js'
 import { parseFeed } from './parser.js'
 import type { RssToolExecution } from './execution.js'
@@ -531,7 +531,7 @@ export function buildRssTools(
 
   const rssRemove: RssToolDefinition = {
     name: 'rss_remove',
-    description: '删除已订阅的 RSS/Atom 源。url 与 name 至少给一个：url 精确匹配（不区分大小写），name 匹配所有同名订阅。删除结果持久化到 settings。',
+    description: '删除已订阅的 RSS/Atom 源。url 与 name 至少给一个：url 的协议、主机大小写与默认端口可归一化，路径和查询值精确匹配；name 匹配所有同名订阅。删除结果持久化到 settings。',
     parameters: compileParameters({
       url: { type: 'string', description: '要删除的订阅源地址（可选，与 name 至少给一个）。' },
       name: { type: 'string', description: '要删除的订阅显示名（可选，与 url 至少给一个；同名全部删除）。' },
@@ -717,7 +717,7 @@ export function buildRssTools(
       const nameFilter = optionalString(args, 'name')
 
       let targets = getFeeds()
-      if (urlFilter !== undefined) targets = targets.filter((feed) => feed.url.toLowerCase() === urlFilter.toLowerCase())
+      if (urlFilter !== undefined) targets = targets.filter((feed) => sameFeedUrl(feed.url, urlFilter))
       if (nameFilter !== undefined) targets = findFeedsByName(targets, nameFilter)
       if (targets.length === 0) {
         if (urlFilter !== undefined || nameFilter !== undefined) {

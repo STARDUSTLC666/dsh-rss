@@ -1,10 +1,10 @@
 # dsh-rss
 
-## 0.4.1 update (2026-09-27)
+## 0.4.3 update (2026-10-01)
 
-Explains feed resolution failures caused by proxy Fake-IP DNS and suggests using a real DNS address while keeping reserved-address protection enabled.
+Fixes URL comparison for add, remove, OPML import and search. Schemes, hosts and default ports are normalized while case-sensitive paths and query parameters remain distinct, preventing unrelated subscriptions from being merged or removed. Existing Fake-IP DNS guidance and reserved-address checks remain available.
 
-Validation host: Harness `0.2.0-rc.1` built from official sources (commit `407e65c8`) with Node `24.16.0` on 2026-09-28. All 77 plugin tests pass in an isolated environment; all 18 plugins mount together in one host registering 9 tools, with tool schemas and health-check contracts passing. No live ports or external services were exercised in this round.
+Validation host: Harness `0.2.0-rc.2` built from official sources (commit `639ed01539`) on 2026-10-01. All 81 Windows tests, the 18-plugin co-load and nine RSS tool contracts pass. Production external feeds still require separate network validation.
 
 ![npm](https://img.shields.io/npm/v/dsh-rss) ![downloads](https://img.shields.io/npm/dm/dsh-rss) ![license](https://img.shields.io/github/license/STARDUSTLC666/dsh-rss) ![stars](https://img.shields.io/github/stars/STARDUSTLC666/dsh-rss?style=social)
 
@@ -14,7 +14,7 @@ DSH (DeepSeek Harness) plugin for RSS/Atom subscriptions: manage feeds, fetch an
 
 ## Compatibility
 
-Version 0.4.0 supports official-source Harness **0.1.7-alpha.2** (2026-09-23, with a local `Symbol.for` tool-scheduler fix). All 18 plugins load together; tool contracts, subscription updates and restart persistence pass in isolation. Live feeds require working network access. Requires Node 22.19 or later within 22.x, or 24 or later.
+Version 0.4.0 supports the declarative settings interface introduced in Harness **0.1.7**. The current baseline is official-source **0.2.0-rc.2**. All 18 plugins load together; tool contracts, subscription updates and restart persistence pass in isolation. Live feeds require working network access. Requires Node 22.19 or later within 22.x, or 24 or later.
 
 Fetches honor the Harness cancellation signal through DNS, response streaming, and cross-feed searches. Hostname preflight checks reject loopback, private, and link-local addresses by default, including redirect destinations. Set `allowPrivateNetwork: true` for trusted internal feeds.
 

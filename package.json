@@ -1,6 +1,6 @@
 {
   "name": "dsh-rss",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "DSH RSS 插件：订阅源管理、OPML 导入导出、抓取解析 RSS/Atom 并保留正文。",
   "type": "module",
   "main": "lib/index.js",

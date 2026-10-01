@@ -10,8 +10,10 @@ export interface Feed {
 export declare function parseFeedsYaml(text: string): Feed[];
 /** 订阅数组序列化回 YAML 文本（带使用说明头）。 */
 export declare function serializeFeeds(feeds: Feed[]): string;
+/** Normalize URL scheme, host and default port while preserving path/query case. */
+export declare function sameFeedUrl(a: string, b: string): boolean;
 /**
- * 添加订阅：按 url（不区分大小写）去重；已存在时合并更新 name/category。
+ * 添加订阅：按 URL 去重，保留路径与查询值的大小写；已存在时合并更新 name/category。
  */
 export declare function addFeed(feeds: Feed[], url: string, name: string, category: string): {
     feeds: Feed[];
@@ -19,7 +21,7 @@ export declare function addFeed(feeds: Feed[], url: string, name: string, catego
     existed: boolean;
 };
 /**
- * 删除订阅：url 精确匹配（不区分大小写），或 name 匹配所有同名项（不区分大小写）。
+ * 删除订阅：URL 路径与查询值精确匹配，或 name 匹配所有同名项（不区分大小写）。
  * 两者都缺或没有匹配项时抛中文错误。
  */
 export declare function removeFeed(feeds: Feed[], url?: string, name?: string): {
