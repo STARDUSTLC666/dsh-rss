@@ -3,7 +3,10 @@ import { lookup } from 'node:dns/promises'
 import { isIP } from 'node:net'
 import type { ResolvedRssConfig } from './config.js'
 import type { RssToolExecution } from './execution.js'
-import { createProxyFetch } from './proxy-fetch.js'
+import { createFeedTransport } from './proxy-fetch.js'
+import { lookupPublicDns } from './public-dns.js'
+import { readResponseText } from './response.js'
+import { readWindowsProxy, selectWindowsProxy } from './system-proxy.js'
 
 /** 可注入的 fetch 实现（测试用假 fetch 替换真网络）。 */
 export type FetchLike = (url: string, init?: { headers?: Record<string, string>; redirect?: string; signal?: AbortSignal }) => Promise<Response>
@@ -13,7 +16,7 @@ export type DnsLookupLike = (hostname: string) => Promise<readonly { address: st
 
 
 const MAX_REDIRECTS = 5
-const PROXY_HINT = '。若该订阅源需要特殊代理（梯子）才能访问，请在 cordis.patch.yml 里给 dsh-rss 配置 proxyUrl（如 http://127.0.0.1:7890）后重启。'
+const PROXY_HINT = '。请检查网络与代理连接；也可在 dsh-rss 配置中指定 proxyUrl。'
 
 
 function parseHttpUrl(url: string): URL {
@@ -115,7 +118,13 @@ async function lookupWithSignal(hostname: string, lookupImpl: DnsLookupLike, sig
   })
 }
 
-async function assertPublicUrl(url: URL, cfg: ResolvedRssConfig, lookupImpl: DnsLookupLike, signal: AbortSignal): Promise<void> {
+function isFakeIp(address: string): boolean {
+  const bytes = ipv4Bytes(address)
+  return bytes !== null && bytes[0] === 198 && (bytes[1] === 18 || bytes[1] === 19)
+}
+
+async function resolvePublicUrl(url: URL, cfg: ResolvedRssConfig, lookupImpl: DnsLookupLike, signal: AbortSignal,
+  fallbackLookup: DnsLookupLike): Promise<Awaited<ReturnType<DnsLookupLike>> | undefined> {
   if (cfg.allowPrivateNetwork) return
   const hostname = url.hostname.replace(/^\[|\]$/g, '').toLowerCase()
   if (hostname === 'localhost' || hostname.endsWith('.localhost')) {
@@ -125,7 +134,7 @@ async function assertPublicUrl(url: URL, cfg: ResolvedRssConfig, lookupImpl: Dns
     if (isBlockedNetworkAddress(hostname)) {
       throw new Error('出于安全原因，默认禁止访问回环、私网、链路本地或保留地址：' + hostname + '。若确需访问可信内网源，请显式配置 allowPrivateNetwork: true。')
     }
-    return
+    return [{ address: hostname, family: isIP(hostname) }]
   }
   let addresses: readonly { address: string; family: number }[]
   try {
@@ -135,57 +144,22 @@ async function assertPublicUrl(url: URL, cfg: ResolvedRssConfig, lookupImpl: Dns
     throw new Error('无法安全解析订阅源域名 ' + hostname + '：' + (error instanceof Error ? error.message : String(error)))
   }
   if (addresses.length === 0) throw new Error('无法安全解析订阅源域名 ' + hostname + '：DNS 未返回地址。')
+  const privateAddress = addresses.find(entry => isBlockedNetworkAddress(entry.address) && !isFakeIp(entry.address))
+  if (privateAddress !== undefined) {
+    throw new Error('出于安全原因，域名 ' + hostname + ' 解析到了非公网地址 ' + privateAddress.address + '，已拒绝访问。若确需访问可信内网源，请显式配置 allowPrivateNetwork: true。')
+  }
+  if (addresses.some(entry => isFakeIp(entry.address))) {
+    if (!cfg.fakeIpDnsFallback) {
+      throw new Error('无法安全解析订阅源域名 ' + hostname + '：检测到代理 Fake-IP。可启用 fakeIpDnsFallback 查询真实 IP 后重试，VPN 可以保持开启。')
+    }
+    addresses = await lookupWithSignal(hostname, fallbackLookup, signal)
+    if (addresses.length === 0) throw new Error('无法安全解析订阅源域名 ' + hostname + '：HTTPS DNS 未返回地址。')
+  }
   const blocked = addresses.find((entry) => isBlockedNetworkAddress(entry.address))
   if (blocked !== undefined) {
-    const v4 = ipv4Bytes(blocked.address)
-    if (v4 !== null && v4[0] === 198 && (v4[1] === 18 || v4[1] === 19)) {
-      throw new Error('订阅源域名 ' + hostname + ' 被解析为保留地址 ' + blocked.address + '，可能是代理软件的 Fake-IP，已拒绝访问。请在代理 DNS 设置中让该域名返回真实 IP（如加入 fake-ip-filter），然后重试。无需开启内网访问。')
-    }
     throw new Error('出于安全原因，域名 ' + hostname + ' 解析到了非公网地址 ' + blocked.address + '，已拒绝访问。若确需访问可信内网源，请显式配置 allowPrivateNetwork: true。')
   }
-}
-
-/** 构造默认 fetch：配置了 proxyUrl 时走插件级代理。 */
-function makeFetch(cfg: ResolvedRssConfig): FetchLike {
-  if (cfg.proxyUrl === '') return globalThis.fetch as unknown as FetchLike
-  return createProxyFetch(cfg.proxyUrl) as unknown as FetchLike
-}
-
-/**
- * 抓取订阅源 XML：校验地址、限时、限制体积、剥 BOM。
- */
-async function readResponseText(response: Response, maxBodyBytes: number, signal: AbortSignal): Promise<string> {
-  signal.throwIfAborted()
-  const declaredLength = Number(response.headers.get('content-length'))
-  if (Number.isFinite(declaredLength) && declaredLength > maxBodyBytes) {
-    await response.body?.cancel('response body exceeds maxBodyBytes')
-    throw new Error('订阅源内容超过 ' + maxBodyBytes + ' 字节上限，已停止读取。')
-  }
-  if (response.body === null) return ''
-  const reader = response.body.getReader()
-  const onAbort = (): void => { void reader.cancel(signal.reason).catch(() => {}) }
-  signal.addEventListener('abort', onAbort, { once: true })
-  const decoder = new TextDecoder('utf-8', { fatal: false })
-  let byteLength = 0
-  let text = ''
-  try {
-    while (true) {
-      signal.throwIfAborted()
-      const chunk = await reader.read()
-      signal.throwIfAborted()
-      if (chunk.done) break
-      byteLength += chunk.value.byteLength
-      if (byteLength > maxBodyBytes) {
-        await reader.cancel('response body exceeds maxBodyBytes')
-        throw new Error('订阅源内容超过 ' + maxBodyBytes + ' 字节上限，已停止读取。')
-      }
-      text += decoder.decode(chunk.value, { stream: true })
-    }
-    return text + decoder.decode()
-  } finally {
-    signal.removeEventListener('abort', onAbort)
-    reader.releaseLock()
-  }
+  return addresses
 }
 
 export async function fetchFeedXml(
@@ -196,49 +170,61 @@ export async function fetchFeedXml(
   lookupImpl: DnsLookupLike = async (hostname) => await lookup(hostname, { all: true, verbatim: true }),
 ): Promise<{ xml: string; finalUrl: string }> {
   let currentUrl = parseHttpUrl(url)
-  const fetcher = fetchImpl ?? makeFetch(cfg)
   const signal = mergedSignal(cfg.timeoutMs, exec?.signal)
   let response: Response | undefined
+  let transport: ReturnType<typeof createFeedTransport> | undefined
   try {
-    for (let redirectCount = 0; ; redirectCount++) {
+    const systemProxy = fetchImpl === undefined && cfg.proxyUrl === '' && cfg.useSystemProxy
+      ? await readWindowsProxy(signal) : undefined
+    const fallbackLookup: DnsLookupLike = hostname => lookupPublicDns(hostname, signal, cfg.proxyUrl, systemProxy, fetchImpl)
+    const validate = (target: URL) => resolvePublicUrl(target, cfg, lookupImpl, signal, fallbackLookup)
+    try {
+      for (let redirectCount = 0; ; redirectCount++) {
+        signal.throwIfAborted()
+        const addresses = await validate(currentUrl)
+        transport = fetchImpl === undefined ? createFeedTransport(currentUrl, cfg.proxyUrl || selectWindowsProxy(systemProxy, currentUrl), addresses) : undefined
+        response = await (fetchImpl ?? transport!.fetch)(currentUrl.href, {
+          headers: {
+            'user-agent': cfg.userAgent,
+            accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*',
+          },
+          redirect: 'manual',
+          signal,
+        })
+        signal.throwIfAborted()
+        if (![301, 302, 303, 307, 308].includes(response.status)) break
+        const location = response.headers.get('location')
+        if (location === null) break
+        await response.body?.cancel('following validated redirect')
+        await transport?.dispose()
+        transport = undefined
+        if (redirectCount >= MAX_REDIRECTS) throw new Error('抓取失败：重定向次数超过 ' + MAX_REDIRECTS + ' 次上限。')
+        currentUrl = parseHttpUrl(new URL(location, currentUrl).href)
+      }
+    } catch (error) {
       signal.throwIfAborted()
-      await assertPublicUrl(currentUrl, cfg, lookupImpl, signal)
-      response = await fetcher(currentUrl.href, {
-        headers: {
-          'user-agent': cfg.userAgent,
-          accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*',
-        },
-        redirect: 'manual',
-        signal,
-      })
-      signal.throwIfAborted()
-      if (![301, 302, 303, 307, 308].includes(response.status)) break
-      const location = response.headers.get('location')
-      if (location === null) break
-      await response.body?.cancel('following validated redirect')
-      if (redirectCount >= MAX_REDIRECTS) throw new Error('抓取失败：重定向次数超过 ' + MAX_REDIRECTS + ' 次上限。')
-      currentUrl = parseHttpUrl(new URL(location, currentUrl).href)
+      if (error instanceof Error && (error.message.includes('出于安全原因') || error.message.includes('无法安全解析') || error.message.includes('重定向次数超过'))) throw error
+      throw new Error('抓取失败：' + (error instanceof Error ? error.message : String(error)) + PROXY_HINT)
     }
-  } catch (error) {
-    signal.throwIfAborted()
-    if (error instanceof Error && (error.message.includes('出于安全原因') || error.message.includes('无法安全解析') || error.message.includes('重定向次数超过'))) throw error
-    throw new Error('抓取失败：' + (error instanceof Error ? error.message : String(error)) + PROXY_HINT)
+    if (response === undefined) throw new Error('抓取失败：未收到服务器响应。')
+    if (!response.ok) {
+      await response.body?.cancel('unsuccessful feed response')
+      throw new Error('抓取失败：服务器返回 HTTP ' + response.status + '。')
+    }
+    const reportedUrl = response.url === '' ? currentUrl : parseHttpUrl(response.url)
+    if (reportedUrl.href !== currentUrl.href) await validate(reportedUrl)
+    let xml: string
+    try {
+      xml = await readResponseText(response, cfg.maxBodyBytes, signal)
+    } catch (error) {
+      signal.throwIfAborted()
+      if (error instanceof Error && error.message.includes('字节上限')) throw error
+      throw new Error('读取订阅源内容失败：' + (error instanceof Error ? error.message : String(error)))
+    }
+    xml = xml.replace(/^\uFEFF/, '')
+    return { xml, finalUrl: reportedUrl.href }
+  } finally {
+    await response?.body?.cancel().catch(() => {})
+    await transport?.dispose()
   }
-  if (response === undefined) throw new Error('抓取失败：未收到服务器响应。')
-  if (!response.ok) {
-    await response.body?.cancel('unsuccessful feed response')
-    throw new Error('抓取失败：服务器返回 HTTP ' + response.status + '。')
-  }
-  const reportedUrl = response.url === '' ? currentUrl : parseHttpUrl(response.url)
-  await assertPublicUrl(reportedUrl, cfg, lookupImpl, signal)
-  let xml: string
-  try {
-    xml = await readResponseText(response, cfg.maxBodyBytes, signal)
-  } catch (error) {
-    signal.throwIfAborted()
-    if (error instanceof Error && error.message.includes('字节上限')) throw error
-    throw new Error('读取订阅源内容失败：' + (error instanceof Error ? error.message : String(error)))
-  }
-  xml = xml.replace(/^\uFEFF/, '')
-  return { xml, finalUrl: reportedUrl.href }
 }

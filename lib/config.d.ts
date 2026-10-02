@@ -7,6 +7,8 @@
 /** 插件行配置（cordis.patch.yml 里的 config 段，可缺省）。 */
 export interface RssConfig {
     proxyUrl?: string;
+    useSystemProxy?: boolean;
+    fakeIpDnsFallback?: boolean;
     timeoutMs?: number;
     maxBodyBytes?: number;
     userAgent?: string;
@@ -18,6 +20,8 @@ export interface RssConfig {
 /** 解析后的配置：所有字段都有值。 */
 export interface ResolvedRssConfig {
     proxyUrl: string;
+    useSystemProxy: boolean;
+    fakeIpDnsFallback: boolean;
     timeoutMs: number;
     maxBodyBytes: number;
     userAgent: string;

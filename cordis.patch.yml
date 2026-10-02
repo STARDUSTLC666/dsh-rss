@@ -7,7 +7,9 @@
 #   - id: rss
 #     name: 'dsh-rss'
 #     config:
-#       # proxyUrl: http://127.0.0.1:7890   # 部分订阅源需要特殊代理（梯子）时启用
+#       # proxyUrl: http://127.0.0.1:7890   # 可选；覆盖 Windows 系统代理
+#       # useSystemProxy: true              # 默认自动读取 Windows 手动系统代理
+#       # fakeIpDnsFallback: true           # 默认兼容 VPN Fake-IP，仍校验真实公网 IP
 #       timeoutMs: 15000                     # 抓取超时（毫秒）
 #       # feedsYaml: |                        # 可选：预置订阅列表（也可用 rss_add 工具添加）
 #       #   - url: https://example.com/feed.xml

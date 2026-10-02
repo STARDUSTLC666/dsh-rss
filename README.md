@@ -2,6 +2,12 @@
 
 # dsh-rss
 
+## 0.5.1 更新（2026-10-02）
+
+修复 VPN 开启 Fake-IP 后外部订阅源被拦截的问题。Windows 默认沿用已启用的手动系统代理；检测到 `198.18.0.0/15` 时，通过 HTTPS DNS 查询真实公网地址，再固定连接地址并保留原域名和 TLS 证书校验。VPN 可以保持开启，无需修改代理软件配置或放开内网访问。抓取、跳转或读取结束后释放本次请求的连接。
+
+106 项 Windows 测试通过；在 VPN 开启、原生 DNS 返回 Fake-IP 的环境中，少数派、Python Insider、NASA 和 GitHub Atom 的检查、添加、抓取、持久化增量去重与搜索通过正常插件调用验证，没有注入测试 DNS 或抓取结果。Python 旧订阅地址也仍可读取。桌面原生窗口的单独验收不包含在这些结果中。
+
 ## 0.5.0 更新（2026-10-02）
 
 新增 **设置 → RSS 订阅** 面板：添加、编辑、移除、搜索、分类筛选、检查可用性与 OPML 导入导出。面板与对话工具共用原有订阅列表，不需要迁移数据。跟随 DSH 的中文/英文和外观设置。
@@ -70,7 +76,9 @@ dsh plugin --profile web remove dsh-rss
 - id: rss
   name: 'dsh-rss'
   config:
-    # proxyUrl: http://127.0.0.1:7890   # 部分订阅源需要特殊代理（梯子）才能访问时启用
+    # proxyUrl: http://127.0.0.1:7890   # 可选；覆盖自动读取的 Windows 系统代理
+    # useSystemProxy: true             # 默认读取 Windows 已启用的手动系统代理
+    # fakeIpDnsFallback: true          # 默认在 Fake-IP 下查询并校验真实公网地址
     timeoutMs: 15000                     # 抓取超时（毫秒，默认 15000）
     # maxBodyBytes: 5242880              # 订阅源体积上限（默认 5MB，防超大响应）
     # userAgent: 'dsh-rss/0.2.0'         # 自定义抓取 UA
@@ -108,9 +116,11 @@ rss_opml_import { opml: "<?xml version=\"1.0\"?>..." }
 
 Harness 0.1.7 把订阅列表和读取游标保存在当前 profile 的 `rss` 配置行；增删后立即生效，重启仍保留。默认安装会自动导入旧 `settings.yaml` 或 `settings.yaml.imported` 的 `dsh-rss` 数据一次，保留原文件，且不覆盖已有 profile 值。旧版宿主继续使用原 settings 存储。同名订阅请用 URL 区分。
 
-## 特殊代理（梯子）
+## 代理与 VPN
 
-大部分订阅源可以直接访问；少数订阅源需要特殊代理（梯子）才能连通。遇到 `抓取失败` 且提示需要代理时，把 `proxyUrl` 配成你的本地代理地址（如 `http://127.0.0.1:7890`）并重启即可。代理只作用于本插件的抓取请求，不影响同进程其他插件。
+Windows 上默认读取已启用的手动系统代理，尊重协议与绕过列表；不执行 PAC 脚本，也不修改系统设置。`proxyUrl` 显式配置优先；`useSystemProxy: false` 可关闭自动读取。其他平台仍可通过 `proxyUrl` 配置 HTTP(S) 代理。这些代理仅作用于本插件。
+
+当系统 DNS 返回 VPN 的 Fake-IP（`198.18.0.0/15`）时，默认只向 [Cloudflare HTTPS DNS](https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/make-api-requests/dns-json/) 查询订阅源域名；服务不可用时尝试 Google HTTPS DNS。查询不会发送订阅源路径、正文、密钥或订阅列表，回答仍须通过公网地址检查；实际连接固定到检查过的地址。`fakeIpDnsFallback: false` 可关闭该兼容方式。普通公网 DNS、私网 DNS 和 IP 字面量不会触发此查询。可信内网订阅仍需单独显式配置 `allowPrivateNetwork: true`。
 
 ## 解析能力
 

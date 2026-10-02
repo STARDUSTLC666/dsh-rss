@@ -5,6 +5,8 @@ export declare const Config: modern<Schemastery.ObjectS<NoInfer<{
     proxyUrl: modern<string, string, "plain">;
     timeoutMs: modern<number, number, "plain">;
     maxBodyBytes: modern<number, number, "plain">;
+    useSystemProxy: modern<boolean, boolean, "plain">;
+    fakeIpDnsFallback: modern<boolean, boolean, "plain">;
     userAgent: modern<string, string, "plain">;
     allowPrivateNetwork: modern<boolean, boolean, "plain">;
     opmlWriteApproval: modern<boolean, boolean, "plain">;
@@ -15,6 +17,8 @@ export declare const Config: modern<Schemastery.ObjectS<NoInfer<{
     proxyUrl: modern<string, string, "plain">;
     timeoutMs: modern<number, number, "plain">;
     maxBodyBytes: modern<number, number, "plain">;
+    useSystemProxy: modern<boolean, boolean, "plain">;
+    fakeIpDnsFallback: modern<boolean, boolean, "plain">;
     userAgent: modern<string, string, "plain">;
     allowPrivateNetwork: modern<boolean, boolean, "plain">;
     opmlWriteApproval: modern<boolean, boolean, "plain">;

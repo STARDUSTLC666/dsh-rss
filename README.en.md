@@ -1,5 +1,11 @@
 # dsh-rss
 
+## 0.5.1 update (2026-10-02)
+
+Fixes public feeds being rejected when a VPN returns Fake-IP DNS addresses. Windows uses the enabled manual system proxy by default. For `198.18.0.0/15` answers, HTTPS DNS obtains real public addresses; connections are pinned to validated addresses while preserving the original hostname and TLS certificate verification. Keep the VPN enabled without changing its configuration or allowing private networks. Request-owned connections are released after redirects, errors or body reads.
+
+All 106 Windows tests pass. With the VPN enabled and native DNS returning Fake-IP, normal plugin calls pass check/add/fetch/persisted incremental deduplication/search for SSPAI, Python Insider, NASA and GitHub Atom, with no injected DNS or fetch results. The legacy Python feed URL also remains readable. These results do not establish separate native desktop UI acceptance.
+
 ## 0.5.0 update (2026-10-02)
 
 Adds **Settings → RSS subscriptions** with add/edit/remove, search, category filters, feed checks and OPML import/export. The panel and conversation tools share the existing subscription list. No migration is needed. UI labels follow the host language and appearance settings.
@@ -65,7 +71,9 @@ Override the plugin row in your profile's `cordis.patch.yml` (the plugin also lo
 - id: rss
   name: 'dsh-rss'
   config:
-    # proxyUrl: http://127.0.0.1:7890   # enable when a feed needs a special proxy
+    # proxyUrl: http://127.0.0.1:7890   # optional override for the Windows system proxy
+    # useSystemProxy: true             # use the enabled Windows manual proxy by default
+    # fakeIpDnsFallback: true          # validate real public DNS answers when Fake-IP is detected
     timeoutMs: 15000                     # fetch timeout in ms (default 15000)
     # maxBodyBytes: 5242880              # response size cap (default 5MB, guards oversized responses)
     # userAgent: 'dsh-rss/0.2.0'         # custom fetch UA
@@ -106,7 +114,9 @@ On Harness 0.1.7, subscriptions and read cursors are stored in the current profi
 
 ## Proxy
 
-Most feeds are reachable directly; a few require a special proxy from your network. When you hit a `fetch failed` error suggesting a proxy, set `proxyUrl` to your local proxy address (e.g. `http://127.0.0.1:7890`) and restart. The proxy only routes this plugin's fetch requests and does not affect other plugins in the same process.
+Windows uses its enabled manual proxy by default, honoring protocol selection and bypass entries. No PAC scripts are evaluated and OS settings are never modified. An explicit `proxyUrl` takes precedence; `useSystemProxy: false` disables automatic detection. Other platforms can still configure an HTTP(S) `proxyUrl`. These routes apply only to this plugin.
+
+When native DNS returns VPN Fake-IP (`198.18.0.0/15`), only the feed hostname is sent to [Cloudflare HTTPS DNS](https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/make-api-requests/dns-json/), with Google HTTPS DNS as a service-failure fallback. No URL paths, feed content, credentials or subscription lists are sent. Answers must pass public-address checks, and actual connections are pinned to those addresses. Disable this behavior with `fakeIpDnsFallback: false`. Ordinary public DNS, private DNS and IP literals do not trigger it. Trusted internal feeds still require an explicit `allowPrivateNetwork: true`.
 
 ## Parsing capabilities
 

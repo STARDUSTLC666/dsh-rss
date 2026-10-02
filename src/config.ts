@@ -8,6 +8,8 @@
 /** 插件行配置（cordis.patch.yml 里的 config 段，可缺省）。 */
 export interface RssConfig {
   proxyUrl?: string
+  useSystemProxy?: boolean
+  fakeIpDnsFallback?: boolean
   timeoutMs?: number
   maxBodyBytes?: number
   userAgent?: string
@@ -20,6 +22,8 @@ export interface RssConfig {
 /** 解析后的配置：所有字段都有值。 */
 export interface ResolvedRssConfig {
   proxyUrl: string
+  useSystemProxy: boolean
+  fakeIpDnsFallback: boolean
   timeoutMs: number
   maxBodyBytes: number
   userAgent: string
@@ -30,7 +34,7 @@ export interface ResolvedRssConfig {
 
 const DEFAULT_TIMEOUT_MS = 15000
 const DEFAULT_MAX_BODY_BYTES = 5 * 1024 * 1024
-const DEFAULT_USER_AGENT = 'dsh-rss/0.3.1 (DeepSeek Harness RSS plugin)'
+const DEFAULT_USER_AGENT = 'dsh-rss/0.5.1 (DeepSeek Harness RSS plugin)'
 
 function configRecord(config: RssConfig | undefined | null): Record<string, unknown> {
   if (config === undefined || config === null) return {}
@@ -88,6 +92,8 @@ export function resolveConfig(config: RssConfig | undefined | null): ResolvedRss
   if (userAgent === '') throw new Error('userAgent 不能为空字符串。')
   const feedsYaml = optionalString(cfg, 'feedsYaml') ?? ''
   const allowPrivateNetwork = optionalBoolean(cfg, 'allowPrivateNetwork', false)
+  const useSystemProxy = optionalBoolean(cfg, 'useSystemProxy', true)
+  const fakeIpDnsFallback = optionalBoolean(cfg, 'fakeIpDnsFallback', true)
   const opmlWriteApproval = optionalBoolean(cfg, 'opmlWriteApproval', true)
-  return { proxyUrl, timeoutMs, maxBodyBytes, userAgent, feedsYaml, allowPrivateNetwork, opmlWriteApproval }
+  return { proxyUrl, useSystemProxy, fakeIpDnsFallback, timeoutMs, maxBodyBytes, userAgent, feedsYaml, allowPrivateNetwork, opmlWriteApproval }
 }
