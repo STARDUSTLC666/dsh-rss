@@ -1,5 +1,15 @@
 # dsh-rss
 
+## 0.5.0 update (2026-10-02)
+
+Adds **Settings → RSS subscriptions** with add/edit/remove, search, category filters, feed checks and OPML import/export. The panel and conversation tools share the existing subscription list. No migration is needed. UI labels follow the host language and appearance settings.
+
+Import previews new feeds, duplicate changes and rejected items before confirmation. Existing labels/categories are preserved by default; updates require an explicit checkbox. Failed saves and stale previews preserve your input. Removing a feed requires confirmation of its name and URL.
+
+Fixes partial imports of malformed XML, acceptance of invalid URLs or embedded credentials, and lost subscriptions during concurrent additions. Check history lasts for the current DSH run; importing does not fetch every feed.
+
+All 94 Windows tests pass. Actual browser interaction in official-source Harness `0.2.0-rc.2` covers add/edit/filter/check/import/remove, Tab/Enter/Escape, two-page conflicts and restart persistence. Native desktop and narrow-screen interaction remain unverified in this run. Synthetic feeds do not establish production-network compatibility.
+
 ## 0.4.3 update (2026-10-01)
 
 Fixes URL comparison for add, remove, OPML import and search. Schemes, hosts and default ports are normalized while case-sensitive paths and query parameters remain distinct, preventing unrelated subscriptions from being merged or removed. Existing Fake-IP DNS guidance and reserved-address checks remain available.
@@ -27,6 +37,16 @@ dsh plugin --profile web add dsh-rss
 ```
 
 Restart the web service after installing. Ask your assistant to subscribe to an RSS URL or list your subscriptions; ordinary subscription management needs no configuration-file editing.
+
+For the desktop profile, use `dsh plugin --profile desktop add dsh-rss` and reopen DSH after installation or updates. The shared web settings surface provides the panel in both shells. Update older installed versions through the plugin manager first.
+
+## Subscription panel
+
+Open **Settings → RSS subscriptions**. New URLs are fetched and checked before saving; the name and category are optional. Renaming or recategorizing an unchanged URL works without the remote feed being online.
+
+Choose an OPML file (up to 1 MiB) or paste its text, review the preview, then confirm. Rejected URLs include a reason. If another page or tool changed the list, preview again without retyping. Export downloads OPML without changing subscriptions.
+
+Cards show the most recent check/fetch time, article count or error during this run. Read-only configurations allow viewing, checking and exporting.
 
 ## Uninstall
 

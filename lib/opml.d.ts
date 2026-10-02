@@ -27,6 +27,11 @@ export interface OpmlImportResult {
     existedCount: number;
     skippedCount: number;
     skipped: OpmlSkipped[];
+    duplicates: Array<{
+        url: string;
+        before: Feed;
+        after: Feed;
+    }>;
 }
 /** OPML 文档解析结果。 */
 export interface OpmlDocument {
@@ -40,4 +45,4 @@ export declare function parseOpml(text: string): OpmlDocument;
 /** 把订阅列表序列化为 OPML 2.0 文本。 */
 export declare function buildOpml(feeds: Feed[]): string;
 /** 把 OPML 导入合并进现有订阅（按 url 去重），非法项跳过。 */
-export declare function importOpmlFeeds(current: Feed[], document: OpmlDocument): OpmlImportResult;
+export declare function importOpmlFeeds(current: Feed[], document: OpmlDocument, updateExisting?: boolean): OpmlImportResult;

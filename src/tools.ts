@@ -7,11 +7,12 @@
 
 import { writeFile } from 'node:fs/promises'
 import { type ResolvedRssConfig } from './config.js'
-import { addFeed, findFeedsByName, parseFeedsYaml, removeFeed, sameFeedUrl, serializeFeeds, type Feed } from './feeds.js'
+import { addFeed, findFeedsByName, removeFeed, sameFeedUrl, type Feed } from './feeds.js'
 import { buildOpml, importOpmlFeeds, parseOpml } from './opml.js'
 import { parseFeed } from './parser.js'
 import type { RssToolExecution } from './execution.js'
-import { assertHttpUrl, fetchFeedXml, type FetchLike, type DnsLookupLike } from './network.js'
+import { assertHttpUrl, type FetchLike, type DnsLookupLike } from './network.js'
+import { subscriptionSnapshot, mutateSubscriptions, readRssFeed } from './subscriptions.js'
 import { resolveOpmlOutputPath } from './workspace.js'
 export type { RssToolExecution } from './execution.js'
 export { isBlockedNetworkAddress, type FetchLike, type DnsLookupLike } from './network.js'
@@ -472,19 +473,8 @@ export function buildRssTools(
 ): RssToolDefinition[] {
   const cfg = config
 
-  const getFeeds = (): Feed[] => {
-    const value = settingsScope.get() as { feedsYaml?: unknown } | null
-    const yamlText = value !== null && typeof value === 'object' && typeof value.feedsYaml === 'string' ? value.feedsYaml : ''
-    return parseFeedsYaml(yamlText)
-  }
-
-  const persistFeeds = async (feeds: Feed[]): Promise<void> => {
-    try {
-      await settingsScope.update({ feedsYaml: serializeFeeds(feeds) })
-    } catch (error) {
-      throw new Error('写入订阅配置失败（可能已被其他会话修改，请重试）：' + (error instanceof Error ? error.message : String(error)))
-    }
-  }
+  const getFeeds = (): Feed[] => subscriptionSnapshot(settingsScope).feeds
+  const readFeed = (url: string, exec?: RssToolExecution) => readRssFeed(settingsScope, url, cfg, exec, fetchImpl, lookupImpl)
 
   const rssList: RssToolDefinition = {
     name: 'rss_list',
@@ -519,12 +509,12 @@ export function buildRssTools(
       assertHttpUrl(url)
       const name = optionalString(args, 'name') ?? ''
       const category = optionalString(args, 'category') ?? ''
-      const { xml, finalUrl } = await fetchFeedXml(url, cfg, exec, fetchImpl, lookupImpl)
-      const parsed = parseFeed(xml, finalUrl)
+      const { parsed } = await readFeed(url, exec)
       const effectiveName = name !== '' ? name : parsed.feed.title
-      const { feeds, added, existed } = addFeed(getFeeds(), url, effectiveName, category)
-      await persistFeeds(feeds)
-      return { added, existed, count: feeds.length, feedTitle: parsed.feed.title, feedType: parsed.feed.feedType }
+      return mutateSubscriptions(settingsScope, current => {
+        const { feeds, added, existed } = addFeed(current, url, effectiveName, category)
+        return { feeds, value: { added, existed, count: feeds.length, feedTitle: parsed.feed.title, feedType: parsed.feed.feedType } }
+      })
     },
     timeoutMs: cfg.timeoutMs,
   }
@@ -542,9 +532,10 @@ export function buildRssTools(
     },
     async execute(rawArgs: unknown) {
       const args = asRecord(rawArgs)
-      const { feeds, removed } = removeFeed(getFeeds(), optionalString(args, 'url'), optionalString(args, 'name'))
-      await persistFeeds(feeds)
-      return { removed, count: feeds.length }
+      return mutateSubscriptions(settingsScope, current => {
+        const { feeds, removed } = removeFeed(current, optionalString(args, 'url'), optionalString(args, 'name'))
+        return { feeds, value: { removed, count: feeds.length } }
+      })
     },
     timeoutMs: TIMEOUT_MS,
   }
@@ -595,8 +586,7 @@ export function buildRssTools(
       assertHttpUrl(url)
       const limit = clampedInteger(args, 'limit', 20, 1, 100)
       const incremental = args.incremental === true
-      const { xml, finalUrl } = await fetchFeedXml(url, cfg, exec, fetchImpl, lookupImpl)
-      const parsed = parseFeed(xml, finalUrl)
+      const { parsed, finalUrl } = await readFeed(url, exec)
       if (!incremental) {
         const entries = parsed.entries.slice(0, limit)
         return { url: finalUrl, feed: parsed.feed, entries, truncated: parsed.entries.length > limit }
@@ -625,8 +615,7 @@ export function buildRssTools(
       const args = asRecord(rawArgs)
       const url = requiredString(args, 'url', '订阅源地址')
       assertHttpUrl(url)
-      const { xml, finalUrl } = await fetchFeedXml(url, cfg, exec, fetchImpl, lookupImpl)
-      const parsed = parseFeed(xml, finalUrl)
+      const { parsed, finalUrl } = await readFeed(url, exec)
       return {
         ok: true,
         url: finalUrl,
@@ -680,16 +669,14 @@ export function buildRssTools(
       const args = asRecord(rawArgs)
       const opmlText = requiredString(args, 'opml', 'OPML 文本')
       const document = parseOpml(opmlText)
-      const outcome = importOpmlFeeds(getFeeds(), document)
-      await persistFeeds(outcome.feeds)
-      return {
-        addedCount: outcome.addedCount,
-        existedCount: outcome.existedCount,
-        skippedCount: outcome.skippedCount,
-        totalCount: outcome.feeds.length,
-        added: outcome.added,
-        skipped: outcome.skipped,
-      }
+      return mutateSubscriptions(settingsScope, current => {
+        const outcome = importOpmlFeeds(current, document)
+        return { feeds: outcome.feeds, value: {
+          addedCount: outcome.addedCount, existedCount: outcome.existedCount,
+          skippedCount: outcome.skippedCount, totalCount: outcome.feeds.length,
+          added: outcome.added, skipped: outcome.skipped,
+        } }
+      })
     },
     timeoutMs: TIMEOUT_MS,
   }
@@ -731,8 +718,7 @@ export function buildRssTools(
       for (const feed of targets) {
         if (hits.length >= limit) break
         try {
-          const { xml, finalUrl } = await fetchFeedXml(feed.url, cfg, exec, fetchImpl, lookupImpl)
-          const parsed = parseFeed(xml, finalUrl)
+          const { parsed } = await readFeed(feed.url, exec)
           for (const entry of parsed.entries) {
             const rec = asRecord(entry)
             const at = Date.parse(typeof rec.pubDate === 'string' ? rec.pubDate : '')

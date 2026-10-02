@@ -7,8 +7,9 @@
  * @module dsh-rss/opml
  */
 
-import { XMLParser } from 'fast-xml-parser'
-import { addFeed, type Feed } from './feeds.js'
+import { XMLParser, XMLValidator } from 'fast-xml-parser'
+import { addFeed, sameFeedUrl, type Feed } from './feeds.js'
+import { assertHttpUrl } from './network.js'
 
 /** OPML 解析出的一个订阅。 */
 export interface OpmlOutline {
@@ -32,6 +33,7 @@ export interface OpmlImportResult {
   existedCount: number
   skippedCount: number
   skipped: OpmlSkipped[]
+  duplicates: Array<{ url: string; before: Feed; after: Feed }>
 }
 
 /** OPML 文档解析结果。 */
@@ -74,6 +76,8 @@ function firstText(value: unknown): string {
 export function parseOpml(text: string): OpmlDocument {
   const trimmed = (text ?? '').trim()
   if (trimmed === '') throw new Error('OPML 内容为空，请提供 OPML XML 文本。')
+  const validation = XMLValidator.validate(trimmed)
+  if (validation !== true) throw new Error('OPML 解析失败：第 ' + validation.err.line + ' 行，' + validation.err.msg)
   let doc: unknown
   try {
     doc = opmlParser.parse(trimmed)
@@ -153,14 +157,25 @@ export function buildOpml(feeds: Feed[]): string {
 const HTTP_URL = /^https?:\/\//i
 
 /** 把 OPML 导入合并进现有订阅（按 url 去重），非法项跳过。 */
-export function importOpmlFeeds(current: Feed[], document: OpmlDocument): OpmlImportResult {
+export function importOpmlFeeds(current: Feed[], document: OpmlDocument, updateExisting = true): OpmlImportResult {
   const feeds = [...current]
   const added: Feed[] = []
   const skipped: OpmlSkipped[] = []
+  const duplicates: OpmlImportResult['duplicates'] = []
   let existedCount = 0
   for (const outline of document.outlines) {
     if (!HTTP_URL.test(outline.url)) {
       skipped.push({ title: outline.name, url: outline.url, reason: 'URL 不是 http(s) 地址' })
+      continue
+    }
+    try { assertHttpUrl(outline.url) } catch (error) {
+      skipped.push({ title: outline.name, url: outline.url, reason: error instanceof Error ? error.message : String(error) })
+      continue
+    }
+    const previous = feeds.find(feed => sameFeedUrl(feed.url, outline.url))
+    if (!updateExisting && previous) {
+      existedCount += 1
+      duplicates.push({ url: outline.url, before: previous, after: previous })
       continue
     }
     const before = feeds.length
@@ -168,6 +183,7 @@ export function importOpmlFeeds(current: Feed[], document: OpmlDocument): OpmlIm
     feeds.splice(0, feeds.length, ...outcome.feeds)
     if (outcome.existed) {
       existedCount += 1
+      duplicates.push({ url: outline.url, before: previous!, after: outcome.added })
     } else if (feeds.length > before) {
       added.push(outcome.added)
     }
@@ -179,5 +195,6 @@ export function importOpmlFeeds(current: Feed[], document: OpmlDocument): OpmlIm
     existedCount,
     skippedCount: skipped.length,
     skipped,
+    duplicates,
   }
 }
