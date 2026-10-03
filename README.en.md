@@ -2,6 +2,8 @@
 
 [中文](README.md)
 
+![dsh-rss whale girl plugin cover](https://raw.githubusercontent.com/STARDUSTLC666/dsh-rss/master/assets/cover-whale-girl.png)
+
 Subscribe to and read RSS or Atom feeds, and manage updates from DSH.
 
 [![npm](https://img.shields.io/npm/v/dsh-rss)](https://www.npmjs.com/package/dsh-rss) [![downloads](https://img.shields.io/npm/dm/dsh-rss)](https://www.npmjs.com/package/dsh-rss)

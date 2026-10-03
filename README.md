@@ -2,6 +2,8 @@
 
 [English](README.en.md)
 
+![dsh-rss 鲸鱼娘插件封面](https://raw.githubusercontent.com/STARDUSTLC666/dsh-rss/master/assets/cover-whale-girl.png)
+
 订阅和阅读 RSS / Atom，在 DSH 中查看与管理更新。
 
 [![npm](https://img.shields.io/npm/v/dsh-rss)](https://www.npmjs.com/package/dsh-rss) [![downloads](https://img.shields.io/npm/dm/dsh-rss)](https://www.npmjs.com/package/dsh-rss)
