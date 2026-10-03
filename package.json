@@ -1,6 +1,6 @@
 {
   "name": "dsh-rss",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "订阅和阅读 RSS / Atom，在 DSH 中查看与管理更新。",
   "type": "module",
   "main": "lib/index.js",
