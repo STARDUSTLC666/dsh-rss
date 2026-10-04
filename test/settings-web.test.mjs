@@ -7,6 +7,7 @@ import { resolveConfig } from '../lib/config.js'
 import { serializeFeeds, parseFeedsYaml } from '../lib/feeds.js'
 import { buildOpml } from '../lib/opml.js'
 import { buildRssTools } from './helpers.mjs'
+import { recommendedSources } from '../lib/catalog.js'
 
 const XML = '<rss version="2.0"><channel><title>Example feed</title><item><title>Article</title></item></channel></rss>'
 const initial = { url: 'https://example.com/feed', name: 'My label', category: 'Reading' }
@@ -45,6 +46,53 @@ test('settings endpoint returns the shared list, without raw configuration', asy
   assert.equal(result.snapshot.feeds[0].id.length, 64)
   assert.equal(result.snapshot.writable, true)
   assert.equal(result.snapshot.feedsYaml, undefined)
+})
+
+test('catalog is passive and recognizes an existing publisher URL without rewriting its name or category', async t => {
+  const f = await fixture(t)
+  const source = recommendedSources[0]
+  f.scope.yaml = serializeFeeds([{ url: source.url.replace('www.ithome.com', 'WWW.ITHOME.COM'), name: 'My own title', category: '自己的分类' }])
+  const before = f.scope.yaml
+  const result = await f.request()
+  assert.equal(result.snapshot.catalog.sources.find(item => item.id === source.id).subscribed, true)
+  assert.ok(result.snapshot.catalog.sources.some(item => item.subscribed === false))
+  assert.equal(result.snapshot.feeds[0].category, '自己的分类')
+  assert.equal(f.scope.yaml, before)
+  assert.deepEqual(f.calls, [], 'browsing a catalog must not visit every publisher')
+})
+
+test('publisher preview is read-only, URL-pinned and returns at most five safe article links', async t => {
+  const xml = '<rss version="2.0"><channel><title>Preview</title>' + Array.from({ length: 9 }, (_, i) =>
+    `<item><title><![CDATA[Article ${i} <img src=x>]]></title><link>${i === 0 ? 'javascript:alert(1)' : i === 1 ? 'https://user:secret@example.test/path' : '/article-' + i}</link><description>Body not included in preview</description></item>`).join('') + '</channel></rss>'
+  const calls = []
+  const f = await fixture(t, { writable: () => false, fetchImpl: async url => { calls.push(url); return new Response(xml) } })
+  const before = f.scope.yaml
+  const result = await f.request({ action: 'previewSource', sourceId: 'ithome', url: 'https://evil.example/feed' })
+  assert.equal(result.status, 200)
+  assert.deepEqual(calls, ['https://www.ithome.com/rss/'])
+  assert.equal(result.sourcePreview.entryCount, 9)
+  assert.equal(result.sourcePreview.entries.length, 5)
+  assert.equal(result.sourcePreview.entries[0].link, '')
+  assert.equal(result.sourcePreview.entries[1].link, '')
+  assert.equal(result.sourcePreview.entries[2].link, 'https://www.ithome.com/article-2')
+  assert.equal(result.sourcePreview.entries[2].summary, undefined)
+  assert.equal(result.sourcePreview.entries[2].content, undefined)
+  assert.equal(f.scope.yaml, before)
+  assert.equal((await f.request({ action: 'previewSource', sourceId: 'unknown' })).status, 400)
+  assert.equal(calls.length, 1)
+})
+
+test('failed recommended previews preserve subscriptions and cannot mark an unavailable source as subscribed', async t => {
+  const f = await fixture(t, { fetchImpl: async () => new Response('unavailable', { status: 503 }) })
+  const before = f.scope.yaml
+  const result = await f.request({ action: 'previewSource', sourceId: 'ithome' })
+  assert.equal(result.status, 400)
+  const source = result.snapshot.catalog.sources.find(item => item.id === 'ithome')
+  assert.equal(source.check.ok, false)
+  assert.equal(source.subscribed, false)
+  const added = await f.request({ action: 'add', revision: result.snapshot.revision, url: source.url, name: source.name, category: '科技资讯' })
+  assert.equal(added.status, 400)
+  assert.equal(f.scope.yaml, before)
 })
 
 test('settings writes reject foreign ports, null origins, non-JSON and nonlocal hosts', async t => {

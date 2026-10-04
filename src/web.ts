@@ -6,6 +6,7 @@ import { sameFeedUrl, type Feed } from './feeds.js'
 import { assertHttpUrl, type FetchLike, type DnsLookupLike } from './network.js'
 import { buildOpml, parseOpml, importOpmlFeeds } from './opml.js'
 import { feedId, subscriptionSnapshot, mutateSubscriptions, recentFeedChecks, readRssFeed, SubscriptionError } from './subscriptions.js'
+import { recommendedSources, sourceCategories, articleLink } from './catalog.js'
 
 export const RSS_SETTINGS_ROUTE = '/_dsh/dsh-rss/subscriptions'
 // JSON quoting can double the OPML file size; limit the actual text separately.
@@ -69,7 +70,9 @@ export function createRssSettingsBackend(
   const snapshot = () => {
     const state = subscriptionSnapshot(scope)
     const checks = recentFeedChecks(scope)
-    return { revision: state.revision, writable: writable(), feeds: state.feeds.map(feed => ({ ...feed, id: feedId(feed.url), check: checks.get(feed.url) ?? null })) }
+    return { revision: state.revision, writable: writable(), feeds: state.feeds.map(feed => ({ ...feed, id: feedId(feed.url), check: checks.get(feed.url) ?? null })),
+      catalog: { categories: sourceCategories, sources: recommendedSources.map(source => ({ ...source,
+        subscribed: state.feeds.some(feed => sameFeedUrl(feed.url, source.url)), check: checks.get(source.url) ?? null })) } }
   }
   const find = (feeds: Feed[], id: string) => {
     const feed = feeds.find(feed => feedId(feed.url) === id)
@@ -96,6 +99,15 @@ export function createRssSettingsBackend(
     const action = text(args, 'action')
     if (action === 'export') return { opml: buildOpml(subscriptionSnapshot(scope).feeds) }
     if (action === 'preview') return { preview: preview(args) }
+    if (action === 'previewSource') {
+      const source = recommendedSources.find(source => source.id === text(args, 'sourceId'))
+      if (!source) throw new SubscriptionError('这个推荐源不存在，请刷新目录。')
+      const { parsed, finalUrl } = await check(source.url, signal)
+      return { sourcePreview: { sourceId: source.id, checkedAt: new Date().toISOString(), title: parsed.feed.title,
+        entryCount: parsed.entries.length, entries: parsed.entries.slice(0, 5).map(entry => ({
+          title: entry.title.slice(0, 400), link: articleLink(entry.link, finalUrl), pubDate: entry.pubDate.slice(0, 64),
+        })) } }
+    }
     if (action === 'check') {
       const url = text(args, 'id') ? find(subscriptionSnapshot(scope).feeds, text(args, 'id')).url : text(args, 'url')
       const { parsed } = await check(url, signal)

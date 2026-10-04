@@ -11,6 +11,7 @@ Subscribe to and read RSS or Atom feeds, and manage updates from DSH.
 ## What it does
 
 - Add feeds, read articles and fetch updates.
+- Choose from five catalog categories, preview recent articles and subscribe, or enter a URL.
 - Import or export OPML and retain article content.
 - Use a feed panel and optional plugin-level proxy configuration.
 
@@ -26,7 +27,7 @@ For the web version, replace `desktop` with `web`. Restart DSH after installatio
 
 ## Start using it
 
-Add a feed in Settings → RSS subscriptions, or ask to subscribe to a feed URL and summarize recent articles.
+Open Settings → RSS subscriptions → Recommended feeds, choose a topic, preview articles and subscribe. You can also enter your own feed URL or ask to subscribe and summarize recent articles.
 
 ## Requirements and configuration
 
