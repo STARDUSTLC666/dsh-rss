@@ -6,7 +6,7 @@
 
 订阅和阅读 RSS / Atom，在 DSH 中查看与管理更新。
 
-[![npm](https://img.shields.io/npm/v/dsh-rss)](https://www.npmjs.com/package/dsh-rss) [![downloads](https://img.shields.io/npm/dm/dsh-rss)](https://www.npmjs.com/package/dsh-rss)
+[![npm](https://img.shields.io/npm/v/dsh-rss)](https://www.npmjs.com/package/dsh-rss) [![downloads](https://raw.githubusercontent.com/STARDUSTLC666/dsh-suite/npm-downloads/assets/dsh-rss-downloads.svg)](https://www.npmjs.com/package/dsh-rss)
 
 ## 功能
 
