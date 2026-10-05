@@ -2,6 +2,10 @@
 
 [Overview](../README.en.md) · [Changelog](../CHANGELOG.md) · [Validation](VALIDATION.md)
 
+## Current improvements
+
+Repeat rss_fetch with incremental=true and a limit to consume remaining new entries; remaining reports the pending count. Each feed retains up to 5000 deduplication IDs rather than a permanent article archive. OPML is limited to 1 MiB and 64 nesting levels.
+
 ## Installation
 
 ```bash

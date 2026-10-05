@@ -76,6 +76,7 @@ function firstText(value: unknown): string {
 export function parseOpml(text: string): OpmlDocument {
   const trimmed = (text ?? '').trim()
   if (trimmed === '') throw new Error('OPML 内容为空，请提供 OPML XML 文本。')
+  if (Buffer.byteLength(trimmed, 'utf8') > 1024 * 1024) throw new Error('OPML 内容超过 1 MiB，请拆分后导入。')
   const validation = XMLValidator.validate(trimmed)
   if (validation !== true) throw new Error('OPML 解析失败：第 ' + validation.err.line + ' 行，' + validation.err.msg)
   let doc: unknown
@@ -91,7 +92,8 @@ export function parseOpml(text: string): OpmlDocument {
   const body = asRecord(opml.body)
   const outlines: OpmlOutline[] = []
 
-  const walk = (node: unknown, inheritedCategory: string): void => {
+  const walk = (node: unknown, inheritedCategory: string, depth = 0): void => {
+    if (depth > 64) throw new Error('OPML 分类嵌套超过 64 层，请简化分类后导入。')
     const rec = asRecord(node)
     const xmlUrl = attr(rec, '@_xmlUrl') || attr(rec, '@_xmlurl')
     const text = attr(rec, '@_text') || attr(rec, '@_title') || firstText(rec)
@@ -107,7 +109,7 @@ export function parseOpml(text: string): OpmlDocument {
     const rawChildren = rec.outline
     const children = Array.isArray(rawChildren) ? rawChildren : (rawChildren === undefined || rawChildren === null ? [] : [rawChildren])
     const nextCategory = text !== '' ? text : inheritedCategory
-    for (const child of children) walk(child, nextCategory)
+    for (const child of children) walk(child, nextCategory, depth + 1)
   }
 
   const rawBodyOutlines = body.outline

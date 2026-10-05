@@ -2,6 +2,10 @@
 
 [返回简介](../README.md) · [更新记录](../CHANGELOG.md) · [验证记录](VALIDATION.md)
 
+## 本次改进
+
+rss_fetch { incremental: true, limit: 20 } 可重复调用取得余下新条目；remaining 表示本次剩余数量。每源最多保留 5000 个去重 ID，不是永久文章归档。OPML 文本最多 1 MiB、嵌套最多 64 层。
+
 ## 安装
 
 ```bash

@@ -4,6 +4,10 @@
 
 These English notes preserve the earlier translations. The main changelog contains the consolidated version history.
 
+## 0.6.1 (2026-10-05)
+
+- Consume only returned entries during incremental fetches; remaining entries stay available. Serialize cursor updates to preserve concurrent progress. Bound OPML size and nesting.
+
 ## 0.5.1 (2026-10-02)
 
 Fixes public feeds being rejected when a VPN returns Fake-IP DNS addresses. Windows uses the enabled manual system proxy by default. For `198.18.0.0/15` answers, HTTPS DNS obtains real public addresses; connections are pinned to validated addresses while preserving the original hostname and TLS certificate verification. Keep the VPN enabled without changing its configuration or allowing private networks. Request-owned connections are released after redirects, errors or body reads.
