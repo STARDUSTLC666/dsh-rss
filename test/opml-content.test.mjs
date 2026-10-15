@@ -81,7 +81,7 @@ test('rss_opml_export / rss_opml_import 工具链路', async () => {
 })
 
 test('rss_opml_export 写入调用会话工作区内的相对路径', async (t) => {
-  const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'dsh-rss-opml-'))
+  const dir = await fs.promises.realpath(await fs.promises.mkdtemp(path.join(os.tmpdir(), 'dsh-rss-opml-')))
   t.after(() => fs.promises.rm(dir, { recursive: true, force: true }))
   const target = path.join(dir, 'feeds.opml')
   const scope = { feedsYaml: '', get() { return { feedsYaml: this.feedsYaml } }, async update() {} }
