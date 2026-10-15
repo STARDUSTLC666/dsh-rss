@@ -1,5 +1,10 @@
 # 更新记录
 
+## 0.6.2 (2026-10-15)
+
+- 加固直连、HTTP CONNECT 与 TLS 握手的套接字错误隔离，抓取结束会销毁本次请求仍持有的连接，避免错误在请求结束后逃逸。
+- 更新 Undici 至 8.12.1；新增独立进程的直连失败、代理 TLS 失败和超时取消回归检查。
+
 [返回简介](README.md) · [使用说明](docs/USAGE.md) · [验证记录](docs/VALIDATION.md)
 
 [历史英文记录](docs/CHANGELOG.en.md)

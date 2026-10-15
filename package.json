@@ -1,6 +1,6 @@
 {
   "name": "dsh-rss",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "订阅和阅读 RSS / Atom，在 DSH 中查看与管理更新。",
   "type": "module",
   "main": "lib/index.js",
@@ -55,7 +55,7 @@
     "@deepseek-ai/schemastery": "^3.18.3",
     "fast-xml-parser": "^5.0.0",
     "schemastery": "^3.18.0",
-    "undici": "^8.11.2",
+    "undici": "^8.12.1",
     "yaml": "^2.9.0"
   },
   "devDependencies": {
