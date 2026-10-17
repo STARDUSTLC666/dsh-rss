@@ -10,6 +10,9 @@ Subscribe to and read RSS or Atom feeds, and manage updates from DSH.
 
 Feedback and contributions are welcome: report [issues](https://github.com/STARDUSTLC666/dsh-rss/issues) or submit [pull requests](https://github.com/STARDUSTLC666/dsh-rss/pulls).
 
+
+See the [0.6.3 validation record](docs/validation-0.6.3.md) for DSH `0.2.1-alpha.5` checks and the narrow-window layout fix.
+
 ## What it does
 
 - Add feeds, read articles and fetch updates.

@@ -1,5 +1,7 @@
 # dsh-rss 验证记录
 
+[0.6.3 · DSH 0.2.1-alpha.5 与窄窗口验收](validation-0.6.3.md)。
+
 [0.6.0 推荐订阅源验收](validation-0.6.0.md)。
 
 [0.5.2 中英文界面验收](validation-language-2026-10-03.md)。

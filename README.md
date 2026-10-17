@@ -10,6 +10,9 @@
 
 欢迎使用，遇到问题或有改进建议，请提交 [issues](https://github.com/STARDUSTLC666/dsh-rss/issues) 和 [PR](https://github.com/STARDUSTLC666/dsh-rss/pulls)。
 
+
+本轮 DSH `0.2.1-alpha.5` 操作与窄窗口修复见 [0.6.3 验收记录](docs/validation-0.6.3.md)。
+
 ## 功能
 
 - 添加订阅、查看文章和抓取更新。
