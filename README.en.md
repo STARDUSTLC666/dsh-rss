@@ -45,6 +45,7 @@ Detailed configuration, tool arguments and troubleshooting are in the [usage gui
 ## Documentation
 
 - [Usage and troubleshooting](docs/USAGE.en.md)
+- [Suggest a feed and catalog criteria](docs/CATALOG.md)
 - [Changelog](CHANGELOG.md)
 - [Validation scope and history](docs/VALIDATION.md)
 - [Report a problem or suggest a feature](https://github.com/STARDUSTLC666/dsh-rss/issues)

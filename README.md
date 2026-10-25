@@ -45,6 +45,7 @@ dsh plugin --profile desktop add dsh-rss
 ## 文档
 
 - [使用与排错](docs/USAGE.md)
+- [推荐订阅源与收录说明](docs/CATALOG.md)
 - [更新记录](CHANGELOG.md)
 - [验证范围与历史记录](docs/VALIDATION.md)
 - [问题反馈与功能建议](https://github.com/STARDUSTLC666/dsh-rss/issues)
