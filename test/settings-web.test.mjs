@@ -95,6 +95,27 @@ test('failed recommended previews preserve subscriptions and cannot mark an unav
   assert.equal(f.scope.yaml, before)
 })
 
+test('saved-feed preview is read-only, ID-pinned and bounded to five safe article links', async t => {
+  const calls = []
+  const xml = '<rss version="2.0"><channel><title>Saved feed</title>' + Array.from({ length: 8 }, (_, i) =>
+    `<item><title>Saved article ${i}</title><link>${i === 0 ? 'javascript:alert(1)' : '/article-' + i}</link><description>Not returned</description></item>`).join('') + '</channel></rss>'
+  const f = await fixture(t, { writable: () => false, fetchImpl: async url => { calls.push(url); return new Response(xml) } })
+  const snapshot = (await f.request()).snapshot
+  const before = f.scope.yaml
+  const result = await f.request({ action: 'previewFeed', id: snapshot.feeds[0].id, url: 'http://127.0.0.1/private' })
+  assert.equal(result.status, 200)
+  assert.deepEqual(calls, [initial.url])
+  assert.equal(result.feedPreview.feedId, snapshot.feeds[0].id)
+  assert.equal(result.feedPreview.entryCount, 8)
+  assert.equal(result.feedPreview.entries.length, 5)
+  assert.equal(result.feedPreview.entries[0].link, '')
+  assert.equal(result.feedPreview.entries[1].link, 'https://example.com/article-1')
+  assert.equal(result.feedPreview.entries[1].content, undefined)
+  assert.equal(f.scope.yaml, before)
+  assert.equal((await f.request({ action: 'previewFeed', id: 'removed', url: initial.url })).status, 409)
+  assert.equal(calls.length, 1)
+})
+
 test('settings writes reject foreign ports, null origins, non-JSON and nonlocal hosts', async t => {
   const f = await fixture(t)
   for (const origin of ['null', 'https://127.0.0.1', 'http://127.0.0.1:1', 'https://evil.example']) {

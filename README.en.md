@@ -13,6 +13,8 @@ Feedback and contributions are welcome: report [issues](https://github.com/STARD
 
 See the [0.6.3 validation record](docs/validation-0.6.3.md) for DSH `0.2.1-alpha.5` checks and the narrow-window layout fix.
 
+Open the new native sidebar workbench after updating and restarting DSH. Settings remains available. See the [workbench guide and validation boundaries](docs/WORKBENCH.md).
+
 ## What it does
 
 - Add feeds, read articles and fetch updates.
