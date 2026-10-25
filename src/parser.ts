@@ -80,7 +80,9 @@ function firstText(value: unknown): string {
 function stripHtml(html: string): string {
   if (!html) return ''
   return html
-    .replace(/<[^>]*>/g, ' ')
+    // Stop at another opening bracket: unmatched '<' must never rescan the
+    // entire remainder for each position and synchronously stall the Host.
+    .replace(/<[^<>]*>/g, ' ')
     .replace(/&nbsp;/gi, ' ')
     .replace(/&amp;/gi, '&')
     .replace(/&lt;/gi, '<')
