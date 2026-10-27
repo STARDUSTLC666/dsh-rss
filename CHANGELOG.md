@@ -1,5 +1,10 @@
 # 更新记录
 
+## 0.9.1 (2026-10-27)
+
+- Keep this component's own update entry visible when installed transitively through Suite. Confirm whole-Suite update scope before opening its controls.
+- Keep automatic installation off by default and preserve independent installation behavior.
+
 ## 0.9.0 (2026-10-26)
 
 - Add this plugin’s own update controls and independent preferences. Automatic installation stays off until explicitly enabled.

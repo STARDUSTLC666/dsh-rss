@@ -1,6 +1,6 @@
 {
   "name": "dsh-rss",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "订阅和阅读 RSS / Atom，在 DSH 中查看与管理更新。",
   "type": "module",
   "main": "lib/index.js",
@@ -60,7 +60,7 @@
     "schemastery": "^3.18.0",
     "undici": "^8.12.1",
     "yaml": "^2.9.0",
-    "@stardustlc/dsh-updates": "0.1.0"
+    "@stardustlc/dsh-updates": "0.1.1"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
