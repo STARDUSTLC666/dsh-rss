@@ -2,4 +2,4 @@ minimumReleaseAgeExclude:
   - "@deepseek-ai/cosmokit@1.8.4"
   - "@deepseek-ai/schemastery@3.18.3"
   - undici@8.12.1
-  - "@stardustlc/dsh-updates@0.1.0 || 0.1.1"
+  - "@stardustlc/dsh-updates@0.1.0 || 0.1.1 || 0.1.2"
