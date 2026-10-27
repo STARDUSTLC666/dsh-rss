@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.9.0 (2026-10-26)
+
+- Add this plugin’s own update controls and independent preferences. Automatic installation stays off until explicitly enabled.
+- Confirm manual installs, preserve local sources and disabled state, pause for tasks or unsaved changes, and use native DSH recovery without forced restarts.
+- Require the public DSH 0.2.1-rc.3 update APIs; Suite components remain managed through Suite.
+
 ## 0.8.0（2026-10-25）
 
 - RSS 主工作台，订阅与目录分区、来源详情与分类清楚展示；保存的来源可主动预览最多五篇文章。

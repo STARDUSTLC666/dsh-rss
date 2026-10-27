@@ -1,6 +1,6 @@
 {
   "name": "dsh-rss",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "订阅和阅读 RSS / Atom，在 DSH 中查看与管理更新。",
   "type": "module",
   "main": "lib/index.js",
@@ -23,19 +23,19 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json && node scripts/build-client.mjs",
+    "build": "tsc -p tsconfig.json && node scripts/build-client.mjs && node scripts/build-updates.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "pnpm run build && node --test \"test/*.test.mjs\"",
     "prepublishOnly": "pnpm run build"
   },
   "dsh": {
     "client": {
+      "platform": "web",
       "inject": [
         "@deepseek-ai/dsh-client-ui-settings",
         "@deepseek-ai/dsh-client-ui-layout",
         "@deepseek-ai/dsh-client-ui-sidebar"
-      ],
-      "platform": "web"
+      ]
     },
     "bundle": {
       "patch": "./cordis.patch.yml"
@@ -51,14 +51,16 @@
   ],
   "license": "MIT",
   "engines": {
-    "node": "^22.19.0 || >=24.0.0"
+    "node": "^22.19.0 || >=24.0.0",
+    "dsh": ">=0.2.1-rc.3"
   },
   "dependencies": {
     "@deepseek-ai/schemastery": "^3.18.3",
     "fast-xml-parser": "^5.0.0",
     "schemastery": "^3.18.0",
     "undici": "^8.12.1",
-    "yaml": "^2.9.0"
+    "yaml": "^2.9.0",
+    "@stardustlc/dsh-updates": "0.1.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

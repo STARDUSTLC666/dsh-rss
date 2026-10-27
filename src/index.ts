@@ -1,3 +1,4 @@
+import { registerUpdates } from '@stardustlc/dsh-updates'
 /**
  * dsh-rss —— RSS/Atom 订阅工具插件（node 半身，配置走 cordis.patch.yml）。
  *
@@ -52,6 +53,8 @@ export interface RssPluginContext {
  * @param config - 插件配置（可缺省）。
  */
 export function apply(ctx: RssPluginContext, config?: RssConfig | null): void {
+  registerUpdates(ctx, { name: "dsh-rss" })
+
   config = liveConfig(config ?? {})
   const cfg = resolveConfig(config)
   installLegacySettingsImport(ctx, config, RSS_SETTINGS_NAMESPACE, 'rss', ['feedsYaml', 'cursorsJson'])

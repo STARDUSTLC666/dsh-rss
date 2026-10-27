@@ -148,6 +148,9 @@ function exportFeeds(){return run('export',{},value=>{const url=URL.createObject
             const [sourcePreviews, setSourcePreviews] = useState({}), [selectedSource, setSelectedSource] = useState('');
             const categoryListId = useId();
             const controller = useRef(null), trigger = useRef(null);
+// Update protection: dsh-rss
+__stardustUpdatesGuard(React, "dsh-rss", { dirty: !!opml.trim(), busy: !!busy || !!modal });
+
             useEffect(() => { listeners.add(setLanguage); return () => listeners.delete(setLanguage); }, []);
             useEffect(() => { void run(null); return () => controller.current?.abort(); }, []);
             async function run(action, args = {}, onSuccess) {
