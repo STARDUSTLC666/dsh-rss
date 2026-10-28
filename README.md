@@ -4,16 +4,13 @@
 
 ![dsh-rss 鲸鱼娘插件封面](https://raw.githubusercontent.com/STARDUSTLC666/dsh-rss/master/assets/cover-whale-girl.png)
 
-订阅和阅读 RSS / Atom，在 DSH 中查看与管理更新。
+在 DSH 中选择、分类和阅读 RSS / Atom 订阅。提供分类推荐目录、搜索、OPML 导入导出与订阅管理；先浏览来源，再由用户选择添加。
 
 [![npm](https://img.shields.io/npm/v/dsh-rss)](https://www.npmjs.com/package/dsh-rss) [![downloads](https://raw.githubusercontent.com/STARDUSTLC666/dsh-suite/npm-downloads/assets/dsh-rss-downloads.svg)](https://www.npmjs.com/package/dsh-rss)
 
 欢迎使用，遇到问题或有改进建议，请提交 [issues](https://github.com/STARDUSTLC666/dsh-rss/issues) 和 [PR](https://github.com/STARDUSTLC666/dsh-rss/pulls)。
 
-
-本轮 DSH `0.2.1-alpha.5` 操作与窄窗口修复见 [0.6.3 验收记录](docs/validation-0.6.3.md)。
-
-更新并重启 DSH 后，可从原生侧栏打开新版工作台，原设置入口继续保留。详见[工作台说明与验收范围](docs/WORKBENCH.md)。
+从 DSH 原生侧栏打开工作台；配置与操作边界见[工作台说明](docs/WORKBENCH.md)。
 
 ## 功能
 

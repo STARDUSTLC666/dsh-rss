@@ -4,16 +4,13 @@
 
 ![dsh-rss whale girl plugin cover](https://raw.githubusercontent.com/STARDUSTLC666/dsh-rss/master/assets/cover-whale-girl.png)
 
-Subscribe to and read RSS or Atom feeds, and manage updates from DSH.
+Choose, organize and read RSS or Atom subscriptions in DSH. Browse a categorized feed catalog, search entries, manage subscriptions and import or export OPML; browsing a source does not subscribe automatically.
 
 [![npm](https://img.shields.io/npm/v/dsh-rss)](https://www.npmjs.com/package/dsh-rss) [![downloads](https://raw.githubusercontent.com/STARDUSTLC666/dsh-suite/npm-downloads/assets/dsh-rss-downloads.svg)](https://www.npmjs.com/package/dsh-rss)
 
 Feedback and contributions are welcome: report [issues](https://github.com/STARDUSTLC666/dsh-rss/issues) or submit [pull requests](https://github.com/STARDUSTLC666/dsh-rss/pulls).
 
-
-See the [0.6.3 validation record](docs/validation-0.6.3.md) for DSH `0.2.1-alpha.5` checks and the narrow-window layout fix.
-
-Open the new native sidebar workbench after updating and restarting DSH. Settings remains available. See the [workbench guide and validation boundaries](docs/WORKBENCH.md).
+Open the workbench from the native DSH sidebar. See the [workbench guide](docs/WORKBENCH.md) for configuration and operating boundaries.
 
 ## What it does
 
