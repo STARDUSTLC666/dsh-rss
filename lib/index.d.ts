@@ -8,6 +8,7 @@
  */
 import { type RssConfig } from './config.js';
 import { type RssSettingsScope, type RssToolDefinition } from './tools.js';
+import { type ApprovalContext } from './approval.js';
 /** cordis 服务注入：apply 里要用 ctx.settings 与 ctx.tools，必须显式声明，否则宿主会抛 cannot get property without inject。 */
 export declare const name = "rss";
 export declare const inject: string[];
@@ -26,7 +27,7 @@ interface RssPendingToolExecution {
 }
 type RssPreExecuteListener = (exec: RssPendingToolExecution, next: () => Promise<RssPreToolDecision>) => Promise<RssPreToolDecision>;
 /** 插件所需的最小 ctx 面（社区插件不依赖宿主内部类型）。 */
-export interface RssPluginContext {
+export interface RssPluginContext extends ApprovalContext {
     settings: {
         readonly writable?: boolean;
         register?(ns: string, schema: unknown, options?: {

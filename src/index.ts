@@ -13,6 +13,7 @@ import { RSS_SETTINGS_NAMESPACE, RssSettingsSchema, liveConfig } from './setting
 import { buildRssTools, type RssSettingsScope, type RssToolDefinition } from './tools.js'
 import { installLegacySettingsImport } from './legacy-settings.js'
 import { createRssSettingsBackend, installRssSettingsWeb } from './web.js'
+import { approvalPolicy, approvalProblem, type ApprovalContext } from './approval.js'
 
 /** cordis 服务注入：apply 里要用 ctx.settings 与 ctx.tools，必须显式声明，否则宿主会抛 cannot get property without inject。 */
 export const name = 'rss'
@@ -34,7 +35,7 @@ type RssPreExecuteListener = (
 ) => Promise<RssPreToolDecision>
 
 /** 插件所需的最小 ctx 面（社区插件不依赖宿主内部类型）。 */
-export interface RssPluginContext {
+export interface RssPluginContext extends ApprovalContext {
   settings: {
     readonly writable?: boolean
     register?(ns: string, schema: unknown, options?: { base?: Record<string, unknown>; applies?: string }): RssSettingsScope
@@ -84,6 +85,10 @@ export function apply(ctx: RssPluginContext, config?: RssConfig | null): void {
         : {}
       const path = typeof args.path === 'string' ? args.path.trim() : ''
       if (path === '') return next()
+      const downstream = await next()
+      if (downstream.kind === 'deny') return downstream
+      const problem = approvalProblem(approvalPolicy(ctx, exec), 'opmlWriteApproval')
+      if (problem) return { kind: 'deny', reason: problem }
       const safeLabel = path.replace(/[\r\n]/g, ' ').slice(0, 200)
       return { kind: 'ask', reason: '将 RSS 订阅列表导出并写入当前会话工作区文件：' + safeLabel }
     })
