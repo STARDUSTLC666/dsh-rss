@@ -1,5 +1,10 @@
 # 更新记录
 
+## 0.9.5 (2026-10-29)
+
+- 同步仓库与 npm 的简明介绍、中英文 README 和反馈入口；本次为文档与包元数据更新。
+- Sync npm descriptions and both README guides with the repository, including issue and pull-request links.
+
 ## 0.9.4 (2026-10-28)
 
 - OPML 导出文件正确处理 never/未知审批策略，提示切换模式或由用户显式配置；保留宿主拒绝。仅返回 OPML 内容不增加写确认。
