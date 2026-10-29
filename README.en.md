@@ -6,7 +6,9 @@
 
 Choose, organize and read RSS or Atom subscriptions in DSH. Browse a categorized feed catalog, search entries, manage subscriptions and import or export OPML; browsing a source does not subscribe automatically.
 
-[![npm](https://img.shields.io/npm/v/dsh-rss)](https://www.npmjs.com/package/dsh-rss) [![downloads](https://raw.githubusercontent.com/STARDUSTLC666/dsh-suite/npm-downloads/assets/dsh-rss-downloads.svg)](https://www.npmjs.com/package/dsh-rss)
+[![npm](https://img.shields.io/npm/v/dsh-rss)](https://www.npmjs.com/package/dsh-rss) [![downloads](https://raw.githubusercontent.com/STARDUSTLC666/dsh-suite/npm-downloads/assets/dsh-rss-downloads.svg)](https://www.npmjs.com/package/dsh-rss) [![total downloads](https://raw.githubusercontent.com/STARDUSTLC666/dsh-suite/npm-downloads/assets/dsh-rss-total-downloads.svg)](https://www.npmjs.com/package/dsh-rss)
+
+[Download statistics](https://github.com/STARDUSTLC666/dsh-suite/blob/npm-downloads/README.md)
 
 Feedback and contributions are welcome: report [issues](https://github.com/STARDUSTLC666/dsh-rss/issues) or submit [pull requests](https://github.com/STARDUSTLC666/dsh-rss/pulls).
 
@@ -31,7 +33,10 @@ For the web version, replace `desktop` with `web`. Restart DSH after installatio
 
 ## Start using it
 
-Open Settings → RSS subscriptions → Recommended feeds, choose a topic, preview articles and subscribe. You can also enter your own feed URL or ask to subscribe and summarize recent articles.
+1. Open RSS in the sidebar; browse catalog categories or prepare your own RSS/Atom URL or OPML file.
+2. Preview the sources and explicitly subscribe or import. Browsing the catalog alone does not subscribe.
+3. Refresh subscriptions, filter by category, unread state or keywords, and open the content you need.
+4. Ask for summaries of content actually read when needed; export OPML backups and manage subscriptions you no longer need.
 
 ## Requirements and configuration
 

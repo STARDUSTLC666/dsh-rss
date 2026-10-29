@@ -6,7 +6,9 @@
 
 在 DSH 中选择、分类和阅读 RSS / Atom 订阅。提供分类推荐目录、搜索、OPML 导入导出与订阅管理；先浏览来源，再由用户选择添加。
 
-[![npm](https://img.shields.io/npm/v/dsh-rss)](https://www.npmjs.com/package/dsh-rss) [![downloads](https://raw.githubusercontent.com/STARDUSTLC666/dsh-suite/npm-downloads/assets/dsh-rss-downloads.svg)](https://www.npmjs.com/package/dsh-rss)
+[![npm](https://img.shields.io/npm/v/dsh-rss)](https://www.npmjs.com/package/dsh-rss) [![downloads](https://raw.githubusercontent.com/STARDUSTLC666/dsh-suite/npm-downloads/assets/dsh-rss-downloads.svg)](https://www.npmjs.com/package/dsh-rss) [![total downloads](https://raw.githubusercontent.com/STARDUSTLC666/dsh-suite/npm-downloads/assets/dsh-rss-total-downloads.svg)](https://www.npmjs.com/package/dsh-rss)
+
+[下载统计说明](https://github.com/STARDUSTLC666/dsh-suite/blob/npm-downloads/README.md)
 
 欢迎使用，遇到问题或有改进建议，请提交 [issues](https://github.com/STARDUSTLC666/dsh-rss/issues) 和 [PR](https://github.com/STARDUSTLC666/dsh-rss/pulls)。
 
@@ -31,7 +33,10 @@ dsh plugin --profile desktop add dsh-rss
 
 ## 开始使用
 
-打开「设置 → RSS 订阅 → 推荐订阅源」，选择感兴趣的分类，预览后点击订阅；也可以输入自己的地址，或说：“订阅这个 RSS 地址并总结最新文章。”
+1. 从左侧栏打开“RSS 订阅”，在推荐目录按分类挑选，或准备自己的 RSS / Atom 地址、OPML 文件。
+2. 先预览来源，再明确选择订阅或导入；仅浏览目录不会自动订阅。
+3. 刷新订阅，按分类、未读状态或关键词查找文章，再打开需要的内容。
+4. 需要时让助手基于已读取文章整理摘要；定期导出 OPML 备份，并管理不再需要的订阅。
 
 ## 依赖与配置
 
