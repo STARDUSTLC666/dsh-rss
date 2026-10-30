@@ -1,35 +1,35 @@
-# dsh-rss
+**简体中文** · [English](README.en.md)
 
-[English](README.en.md)
+# RSS
 
-![dsh-rss 鲸鱼娘插件封面](https://raw.githubusercontent.com/STARDUSTLC666/dsh-rss/master/assets/cover-whale-girl.png)
-
-在 DSH 中选择、分类和阅读 RSS / Atom 订阅。提供分类推荐目录、搜索、OPML 导入导出与订阅管理；先浏览来源，再由用户选择添加。
+**自己选来源，把订阅整理成好读的信息流。**
 
 [![npm](https://img.shields.io/npm/v/dsh-rss)](https://www.npmjs.com/package/dsh-rss) [![downloads](https://raw.githubusercontent.com/STARDUSTLC666/dsh-suite/npm-downloads/assets/dsh-rss-downloads.svg)](https://www.npmjs.com/package/dsh-rss) [![total downloads](https://raw.githubusercontent.com/STARDUSTLC666/dsh-suite/npm-downloads/assets/dsh-rss-total-downloads.svg)](https://www.npmjs.com/package/dsh-rss)
 
-[下载统计说明](https://github.com/STARDUSTLC666/dsh-suite/blob/npm-downloads/README.md)
+**[安装使用](#安装) · [使用流程](#开始使用) · [完整说明](https://github.com/STARDUSTLC666/dsh-rss/blob/master/docs/REFERENCE.zh.md)**
 
-欢迎使用，遇到问题或有改进建议，请提交 [issues](https://github.com/STARDUSTLC666/dsh-rss/issues) 和 [PR](https://github.com/STARDUSTLC666/dsh-rss/pulls)。
-
-从 DSH 原生侧栏打开工作台；配置与操作边界见[工作台说明](docs/WORKBENCH.md)。
+<picture>
+  <source media="(prefers-color-scheme: dark) and (max-width: 640px)" srcset="https://raw.githubusercontent.com/STARDUSTLC666/dsh-rss/master/docs/assets/intro/workflow-zh-mobile-dark.svg">
+  <source media="(max-width: 640px)" srcset="https://raw.githubusercontent.com/STARDUSTLC666/dsh-rss/master/docs/assets/intro/workflow-zh-mobile-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/STARDUSTLC666/dsh-rss/master/docs/assets/intro/workflow-zh-dark.svg">
+  <img src="https://raw.githubusercontent.com/STARDUSTLC666/dsh-rss/master/docs/assets/intro/workflow-zh-light.svg" alt="自己选来源，把订阅整理成好读的信息流。 · 流程示意" width="100%">
+</picture>
 
 ## 功能
 
-- 添加订阅、查看文章和抓取更新。
-- 从五类推荐目录选择来源，预览近期文章后订阅；也可输入地址或导入 OPML。
-- 导入、导出 OPML，保留文章正文。
-- 可视化订阅面板，支持插件级网络代理。
+- 从五类来源目录开始，也能添加自己的地址。
+- 预览后再订阅；浏览目录不会自动添加来源。
+- 按分类、未读或关键词阅读，并导出 OPML 备份。
 
 ## 安装
 
-桌面版可在「插件」面板按包名 `dsh-rss` 安装。已配置 dsh 命令时也可使用：
+在 DSH 桌面版「插件」面板安装 `dsh-rss`。已配置命令行时也可使用：
 
 ```bash
 dsh plugin --profile desktop add dsh-rss
 ```
 
-网页版把命令中的 `desktop` 改为 `web`。安装后重启 DSH。
+网页版把 `desktop` 改为 `web`；安装后重启对应的 DSH。宿主要求以包声明 `>=0.2.1-rc.3` 为准。
 
 ## 开始使用
 
@@ -38,26 +38,32 @@ dsh plugin --profile desktop add dsh-rss
 3. 刷新订阅，按分类、未读状态或关键词查找文章，再打开需要的内容。
 4. 需要时让助手基于已读取文章整理摘要；定期导出 OPML 备份，并管理不再需要的订阅。
 
-## 依赖与配置
+可以这样说：
 
-不需要账号密钥。默认尝试直接连接订阅源；是否需要代理取决于订阅源和当前网络。
+> 整理我已读取的这些订阅文章，保留原文链接，并区分报道事实与推测。
 
-详细配置、工具参数与排错见[使用说明](docs/USAGE.md)。从源码独立开发时，Node 要求以 [package.json](package.json) 为准。
+## 开始前要知道
 
-## 文档
+外部来源的可达性由网站与网络决定；代理是可选配置。
 
-- [使用与排错](docs/USAGE.md)
-- [推荐订阅源与收录说明](docs/CATALOG.md)
-- [更新记录](CHANGELOG.md)
-- [验证范围与历史记录](docs/VALIDATION.md)
-- [问题反馈与功能建议](https://github.com/STARDUSTLC666/dsh-rss/issues)
+配置、完整工具与排错见[详细使用说明](https://github.com/STARDUSTLC666/dsh-rss/blob/master/docs/REFERENCE.zh.md)。
 
 ## 插件更新
 
-需要 DSH 0.2.1-rc.3 或更新版本。更新控件直接位于原有工作台内容末尾；没有工作台的插件，位于原生插件详情页底部。检查、更新记录和偏好在原地展开，不增加独立更新页面或设置菜单。自动检查默认开启；**自动安装默认关闭**，明确授权后才会在空闲且没有未保存修改时安装兼容的稳定补丁。开关按插件独立保存，可关闭、推迟或忽略提醒；不会强制重启 DSH、升级 DSH 本体或替换本地源码安装。Suite 组件在当前页面底部明确说明并操作 Suite 整包更新。
+在工作台或原生插件详情页底部检查更新。默认自动检查，**默认不自动安装**；是否安装、何时重启由你决定。Suite 管理的组件随整包更新。[查看更新规则](https://github.com/STARDUSTLC666/dsh-rss/blob/master/docs/REFERENCE.zh.md)。
 
-旧版用户先在官方插件管理中手动更新一次，之后才会获得此入口。发布到 npm 不会直接替换用户已经安装的版本。
+## 文档
+
+- [详细使用、配置与边界](https://github.com/STARDUSTLC666/dsh-rss/blob/master/docs/REFERENCE.zh.md)
+- [更新记录](https://github.com/STARDUSTLC666/dsh-rss/blob/master/CHANGELOG.md)
+- [验证范围与历史](https://github.com/STARDUSTLC666/dsh-rss/blob/master/docs/VALIDATION.md)
+
+## 反馈与贡献
+
+如果插件帮到了你，欢迎 Star，让更多人发现它。问题和建议请提交 [Issues](https://github.com/STARDUSTLC666/dsh-rss/issues)，也欢迎代码与文档 [PR](https://github.com/STARDUSTLC666/dsh-rss/pulls)。反馈时附上版本与复现步骤，并移除凭据。
 
 ## License
 
-[MIT](LICENSE)
+[MIT](https://github.com/STARDUSTLC666/dsh-rss/blob/master/LICENSE)
+
+<a id="依赖与配置"></a>
