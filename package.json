@@ -1,6 +1,6 @@
 {
   "name": "dsh-rss",
-  "version": "0.9.6",
+  "version": "0.9.7",
   "description": "DSH RSS / Atom 工作台：分类来源目录、订阅读取、搜索与 OPML 导入导出，由用户选择来源。欢迎提交 issues 和 PR。",
   "type": "module",
   "main": "lib/index.js",
@@ -20,7 +20,8 @@
     "README.md",
     "README.en.md",
     "docs",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "assets/plugin-icon.webp"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/build-client.mjs && node scripts/build-updates.mjs",
@@ -75,5 +76,6 @@
   },
   "homepage": "https://github.com/STARDUSTLC666/dsh-rss#readme",
   "author": "stardustlc",
-  "packageManager": "pnpm@11.7.0"
+  "packageManager": "pnpm@11.7.0",
+  "icon": "./assets/plugin-icon.webp"
 }
