@@ -1,11 +1,18 @@
 # 更新记录
 
-## 0.9.8 (2026-11-03)
+## 0.9.9 (2026-11-03)
 
 - 推荐目录筛空可一键清空；rss_health 对失败/空订阅给出下一步；使用说明补齐排错。
 - The recommendation catalog can clear empty filters in one click; rss_health gives next steps for failures and empty subscriptions; troubleshooting docs added.
 - 同步共享 workbench-ui v1.1：Page 外的 Empty / Dialog / Status 自带样式与 `.dshw` 主题作用域，Status 新增 warn 色调。
 - Sync workbench-ui v1.1: Empty / Dialog / Status now carry their own styles and `.dshw` theme scope outside Page, and Status gains a warn tone.
+
+## 0.9.8 (2026-10-30)
+
+- 重整中英文首页：用途、三步流程图、安装入口与操作示例；详细配置与边界集中到完整说明。
+- 保留下载统计、独立更新选择、问题反馈和贡献入口；原封面与运行功能保留。
+- Refresh bilingual landing pages, workflow artwork, quick starts and reference navigation.
+
 
 ## 0.9.7 (2026-10-30)
 
