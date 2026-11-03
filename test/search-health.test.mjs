@@ -93,6 +93,22 @@ test('rss_health 离线自检：解析器通过、订阅数正确、无网络请
   assert.match(blocks[0].text, /自检：正常/)
 })
 
+test('rss_health 还没有订阅时给出首用下一步，而不是只报 0 条', async () => {
+  const health = buildRssTools(cfg, makeFullScope()).find((t) => t.name === 'rss_health')
+  const value = await health.execute({})
+  const text = health.output.render({}, value)[0].text
+  assert.match(text, /建议：/, '空订阅是首次使用的正常状态，但必须告诉用户怎么开始')
+  assert.match(text, /rss_add/, '建议里要点名可执行的入口')
+})
+
+test('rss_health 解析器自检失败时给出修复动作', async () => {
+  const health = buildRssTools(cfg, makeFullScope(FEED_YAML)).find((t) => t.name === 'rss_health')
+  const value = await health.execute({})
+  const text = health.output.render({}, { ...value, ok: false, parserSelfTest: false })[0].text
+  assert.match(text, /解析器自检失败/)
+  assert.match(text, /重装|升级/, '失败要走可修复的路径，而不是「请查看详情」')
+})
+
 test('rss_health 游标计数来自 settings', async () => {
   const scope = makeFullScope(FEED_YAML)
   scope.state.cursorsJson = JSON.stringify({ 'https://a.example/feed': { guids: ['x'], updatedAt: '' } })

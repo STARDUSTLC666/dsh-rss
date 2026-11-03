@@ -106,6 +106,17 @@ When native DNS returns VPN Fake-IP (`198.18.0.0/15`), only the feed hostname is
 - Summaries stripped of HTML tags and truncated at 500 chars; RSS `content:encoded` / Atom `content` is preserved as a `content` field (tags stripped, up to 20000 chars)
 - Safety: no DTD / external entity parsing; 5MB body cap; configurable fetch timeout
 
+## Troubleshooting
+
+Run `rss_health` first: it makes no network requests, reports feed count, proxy, cursors and a parser self-test, and turns a failure into a concrete fix. The workbench shows the same state as status tags on My feeds.
+
+- **One feed keeps failing**: verify that single URL with `rss_check` (or Check feed in the workbench). HTTP 4xx/5xx is the publisher's side; switch or retry later. A failed preview never changes the subscription list.
+- **"Invalid URL"**: only public http(s) addresses are accepted; private/loopback targets and URLs with credentials are rejected. Trusted internal feeds need an explicit `allowPrivateNetwork: true`.
+- **OPML imports 0 items**: outlines must carry `xmlUrl`; the file cap is 1 MiB; truncated XML is rejected as a whole instead of importing half of it.
+- **Settings are read-only**: with `writable=false` you can still view, check and export, but add/edit/remove is refused. Fix write access to the profile configuration and restart.
+- **"Already subscribed"**: edit the existing entry instead of adding a second one with the same URL.
+- **Availability differs per site**: see Proxy above; the Fake-IP fallback still validates that answers are public addresses.
+
 ## Development
 
 ```bash

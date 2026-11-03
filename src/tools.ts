@@ -443,10 +443,11 @@ function renderSearch(_args: unknown, value: unknown): ContentBlock[] {
   return [{ type: 'text', text: lines.join('\n') }]
 }
 
-/** rss_health 的渲染。 */
+/** rss_health 的渲染：除了现状，还要给出「下一步做什么」。 */
 function renderHealth(_args: unknown, value: unknown): ContentBlock[] {
   const rec = asRecord(value)
   const ok = rec.ok === true
+  const feedCount = Number(rec.feedCount ?? 0)
   const lines = [
     'dsh-rss 自检' + (ok ? '：正常。' : '：发现异常，请查看下方详情。'),
     '- 订阅源数量：' + String(rec.feedCount ?? 0),
@@ -454,6 +455,17 @@ function renderHealth(_args: unknown, value: unknown): ContentBlock[] {
     '- 增量游标数量：' + String(rec.cursorCount ?? 0),
     '- 解析器自检：' + (rec.parserSelfTest === true ? '通过' : '失败'),
   ]
+  const hints: string[] = []
+  if (rec.parserSelfTest !== true) {
+    hints.push('解析器自检失败：解析器无法处理内置样例，先重新安装或升级 dsh-rss；仍有问题时把 DSH 日志里的 [dsh-rss] 告警一起提 issue。')
+  }
+  if (feedCount === 0) {
+    hints.push('还没有订阅源：在对话里用 rss_add 添加，或从工作台「推荐订阅源」选一个先预览再订阅（推荐目录不会自动订阅）。')
+  }
+  if (hints.length > 0) {
+    lines.push('', '建议：')
+    for (const hint of hints) lines.push('- ' + hint)
+  }
   return [{ type: 'text', text: lines.join('\n') }]
 }
 
