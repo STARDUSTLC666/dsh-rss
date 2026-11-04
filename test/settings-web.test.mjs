@@ -249,3 +249,15 @@ test('OPML size limits return a useful error without modifying the list', async 
   assert.equal((await f.request({ action: 'preview', opml: 'x'.repeat(3 * 1024 * 1024) })).status, 413)
   assert.equal(parseFeedsYaml(f.scope.yaml).length, 1)
 })
+
+test('the exact DSH desktop origin with the plugin header can save a subscription', async t => {
+  const f=await fixture(t),before=(await f.request()).snapshot;
+  const result=await f.request({action:'add',revision:before.revision,url:'https://example.com/desktop',name:'Desktop feed'},{Origin:'dsh-app://app','X-DSH-RSS':'1'});
+  assert.equal(result.status,200);assert.ok(result.snapshot.feeds.some(feed=>feed.name==='Desktop feed'));
+});
+test('desktop exception rejects missing markers, lookalike origins and null origins', async t => {
+  const f=await fixture(t),before=f.scope.yaml;
+  for(const headers of [{Origin:'dsh-app://app'},{Origin:'dsh-app://app.evil','X-DSH-RSS':'1'},{Origin:'null','X-DSH-RSS':'1'},{Origin:'https://evil.example','X-DSH-RSS':'1'}])
+    assert.equal((await f.request({action:'export'},headers)).status,403);
+  assert.equal(f.scope.yaml,before);
+});

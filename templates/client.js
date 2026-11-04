@@ -89,7 +89,7 @@ window.__ModuleLoader__.load({ id: 'dsh-rss', factory: require => {
   `;
         async function request(action, args, signal) {
             const response = await fetch(new URL(ROUTE, document.baseURI), action ? {
-                method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, ...args }), signal,
+                method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-DSH-RSS': '1' }, body: JSON.stringify({ action, ...args }), signal,
             } : { credentials: 'same-origin', signal });
             let value;
             try {

@@ -1,5 +1,13 @@
 # 更新记录
 
+## 0.9.10 (2026-11-04)
+
+- 同步共享界面：嵌入设置时继承宿主底色，输入框跟随主题，空状态保持可读宽度；新版 DSH 可显示插件设置图标。
+- Align embedded surfaces, themed inputs, readable empty states and optional native settings icons.
+- 允许带专用请求标记的 DSH 桌面来源保存订阅；继续拒绝伪造来源。
+- Accept marked DSH desktop-origin subscription writes while rejecting lookalike origins.
+
+
 ## 0.9.9 (2026-11-03)
 
 - 推荐目录筛空可一键清空；rss_health 对失败/空订阅给出下一步；使用说明补齐排错。
