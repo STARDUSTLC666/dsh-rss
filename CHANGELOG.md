@@ -1,5 +1,11 @@
 # 更新记录
 
+## 0.9.11 (2026-11-06)
+
+- 订阅工作台改用 DSH 官方认证接口，修复新版桌面端移除 Origin 后点击「订阅」被拒绝的问题。
+- 保留旧接口的本机与来源校验，并在新接口保留请求标记、跨站拦截、JSON / 大小限制、并发版本检查和取消。
+- Use the authenticated DSH connection for subscription operations when Desktop strips Origin; retain legacy local guards and request, body, revision and cancellation checks.
+
 ## 0.9.10 (2026-11-04)
 
 - 同步共享界面：嵌入设置时继承宿主底色，输入框跟随主题，空状态保持可读宽度；新版 DSH 可显示插件设置图标。

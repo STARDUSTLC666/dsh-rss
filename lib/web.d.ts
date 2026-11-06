@@ -5,6 +5,7 @@ import type { ResolvedRssConfig } from './config.js';
 import { type FetchLike, type DnsLookupLike } from './network.js';
 import { sourceCategories } from './catalog.js';
 export declare const RSS_SETTINGS_ROUTE = "/_dsh/dsh-rss/subscriptions";
+export declare const RSS_API_ROUTE = "/api/dsh-rss/subscriptions";
 export declare function createRssSettingsBackend(config: ResolvedRssConfig, scope: RssSettingsScope, options?: {
     writable?: () => boolean;
     fetchImpl?: FetchLike;
@@ -50,7 +51,9 @@ export declare function createRssSettingsBackend(config: ResolvedRssConfig, scop
             }[];
         };
     };
-    handle(req: IncomingMessage, res: ServerResponse): Promise<void>;
+    /** Called only by a registered, host-authenticated connection fetch route. */
+    fetch(request: Request): Promise<Response>;
+    handle(req: IncomingMessage, res: ServerResponse, transport?: symbol): Promise<void>;
 };
 export declare function installRssSettingsWeb(ctx: {
     inject?: Function;

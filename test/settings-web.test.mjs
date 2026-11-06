@@ -48,6 +48,13 @@ test('settings endpoint returns the shared list, without raw configuration', asy
   assert.equal(result.snapshot.feedsYaml, undefined)
 })
 
+test('the legacy route still rejects Origin-less writes even with the RSS request marker', async t => {
+  const f = await fixture(t), before = f.scope.yaml
+  const result = await f.request({ action: 'add' }, { Origin: '', 'X-DSH-RSS': '1' })
+  assert.equal(result.status, 403)
+  assert.equal(f.scope.yaml, before)
+})
+
 test('catalog is passive and recognizes an existing publisher URL without rewriting its name or category', async t => {
   const f = await fixture(t)
   const source = recommendedSources[0]

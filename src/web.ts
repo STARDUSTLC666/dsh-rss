@@ -1,5 +1,7 @@
 /** Authenticated, local settings route; no separate copy of subscription data. */
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { Readable } from 'node:stream'
+import { EventEmitter } from 'node:events'
 import type { RssSettingsScope } from './tools.js'
 import type { ResolvedRssConfig } from './config.js'
 import { sameFeedUrl, type Feed } from './feeds.js'
@@ -9,6 +11,8 @@ import { feedId, subscriptionSnapshot, mutateSubscriptions, recentFeedChecks, re
 import { recommendedSources, sourceCategories, articleLink } from './catalog.js'
 
 export const RSS_SETTINGS_ROUTE = '/_dsh/dsh-rss/subscriptions'
+export const RSS_API_ROUTE = '/api/dsh-rss/subscriptions'
+const AUTHENTICATED_CARRIER = Symbol('DSH authenticated RSS connection')
 // JSON quoting can double the OPML file size; limit the actual text separately.
 const MAX_OPML = 1024 * 1024
 const MAX_BODY = MAX_OPML * 2 + 16384
@@ -34,6 +38,22 @@ function requestGuard(req: IncomingMessage): void {
   if (req.method === 'POST' && !/^application\/json(?:\s*;|$)/i.test(req.headers['content-type'] ?? '')) {
     throw new SubscriptionError('请求必须使用 JSON。', 415)
   }
+}
+
+/** The host authenticates this route; a request header alone is never authentication. */
+function carrierGuard(request: Request): void {
+  if (!['GET', 'POST'].includes(request.method)) throw new SubscriptionError('仅支持 GET 和 POST。', 405, 'method')
+  if (request.headers.get('x-dsh-rss') !== '1') throw new SubscriptionError('请从当前 DSH 设置页面操作。', 403, 'origin')
+  const site = request.headers.get('sec-fetch-site')
+  if (site && !['same-origin', 'none'].includes(site)) throw new SubscriptionError('请从当前 DSH 设置页面操作。', 403, 'origin')
+  const origin = request.headers.get('origin')
+  if (origin && origin !== 'dsh-app://app') {
+    try {
+      const source = new URL(origin)
+      if (!['http:', 'https:'].includes(source.protocol) || source.username || source.password || source.origin !== origin || source.host !== (request.headers.get('host') || new URL(request.url).host)) throw new Error('origin mismatch')
+    } catch { throw new SubscriptionError('请从当前 DSH 设置页面操作。', 403, 'origin') }
+  }
+  if (request.method === 'POST' && request.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/json') throw new SubscriptionError('请求必须使用 JSON。', 415)
 }
 
 function readBody(req: IncomingMessage, signal: AbortSignal): Promise<Record<string, unknown>> {
@@ -161,7 +181,28 @@ export function createRssSettingsBackend(
 
   return {
     snapshot,
-    async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    /** Called only by a registered, host-authenticated connection fetch route. */
+    async fetch(request: Request): Promise<Response> {
+      try { carrierGuard(request) } catch (error) {
+        return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error), code: error instanceof SubscriptionError ? error.code : 'invalid' }), { status: error instanceof SubscriptionError ? error.status : 400, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } })
+      }
+      request.signal.throwIfAborted()
+      const req = (request.body ? Readable.fromWeb(request.body as any) : Readable.from([])) as any
+      req.method = request.method; req.headers = Object.fromEntries(request.headers)
+      const headers = new Headers(); let status = 200, bytes = Buffer.alloc(0)
+      const res = Object.assign(new EventEmitter(), {
+        destroyed: false, writableFinished: false,
+        setHeader(name: string, value: string) { headers.set(name, value) },
+        writeHead(value: number, entries: Record<string, string>) { status = value; for (const [name, entry] of Object.entries(entries || {})) headers.set(name, entry) },
+        end(value: string) { bytes = Buffer.from(value); this.writableFinished = true },
+      }) as any
+      const abort = () => req.emit('aborted')
+      request.signal.addEventListener('abort', abort, { once: true })
+      try { await this.handle(req, res, AUTHENTICATED_CARRIER) } finally { request.signal.removeEventListener('abort', abort); req.destroy() }
+      request.signal.throwIfAborted()
+      return new Response(new Uint8Array(bytes), { status, headers })
+    },
+    async handle(req: IncomingMessage, res: ServerResponse, transport?: symbol): Promise<void> {
       const controller = new AbortController()
       const abort = () => { if (!res.writableFinished) controller.abort(new Error('请求已取消')) }
       req.on('aborted', abort); res.on('close', abort)
@@ -171,7 +212,7 @@ export function createRssSettingsBackend(
         res.end(JSON.stringify(value))
       }
       try {
-        requestGuard(req)
+        if (transport !== AUTHENTICATED_CARRIER) requestGuard(req)
         if (req.method === 'GET') send(200, { snapshot: snapshot() })
         else if (req.method === 'POST') {
           const result = await dispatch(await readBody(req, controller.signal), controller.signal)
@@ -192,6 +233,10 @@ export function createRssSettingsBackend(
 
 export function installRssSettingsWeb(ctx: { inject?: Function }, backend: ReturnType<typeof createRssSettingsBackend>): void {
   if (typeof ctx.inject !== 'function') return
+  ctx.inject(['connection'], (host: any) => host.connection?.fetch?.register?.({
+    path: RSS_API_ROUTE, methods: ['GET', 'POST'], requestBody: 'buffered',
+    fetch: (request: Request) => backend.fetch(request),
+  }))
   ctx.inject(['webServer'], (webCtx: any) => webCtx.effect(() => webCtx.webServer.register({
     kind: 'exact', path: RSS_SETTINGS_ROUTE,
     handler: (req: IncomingMessage, res: ServerResponse) => backend.handle(req, res),
