@@ -1,5 +1,10 @@
 # 更新记录
 
+## 0.9.12 (2026-11-08)
+
+- 推荐目录加入 Joho no Todai 的官网英文 RSS，仅登记名称与官方链接；默认不订阅、不抓取文章。明确免费、非独家、可申请移除的出版者收录条件，目录不授予文章或图片的额外使用权（#4）。
+- List the official English Joho no Todai feed as metadata only, without automatic subscription. Document free, non-exclusive listing/removal terms and the separation between catalog metadata and content rights.
+
 ## 0.9.11 (2026-11-06)
 
 - 订阅工作台改用 DSH 官方认证接口，修复新版桌面端移除 Origin 后点击「订阅」被拒绝的问题。

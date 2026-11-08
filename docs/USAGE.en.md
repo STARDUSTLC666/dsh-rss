@@ -1,5 +1,7 @@
 # dsh-rss usage guide
 
+Publishers: see the [catalog listing and removal policy](CATALOG-POLICY.en.md). Independent publications are eligible; listing is free and non-exclusive, follows agreed publisher listing conditions, and grants no additional article or image rights.
+
 ## Confirmation in Full Access
 
 The plugin keeps its confirmation requirement. With approval policy `never`, it reports that confirmation is unavailable and performs no write. Switch to a mode that can ask, or explicitly set `opmlWriteApproval: false` yourself. Host denials still apply.
@@ -24,7 +26,7 @@ For the desktop profile, use `dsh plugin --profile desktop add dsh-rss` and reop
 
 Open **Settings → RSS subscriptions** and choose Recommended feeds, Enter a URL, or Import OPML.
 
-The catalog lists 16 publisher-hosted RSS/Atom feeds in Technology news, AI and research, Software updates, Reading and blogs, and Life and interests. Filter by source, keywords and content language. Cards link to the publisher and show the feed URL. Preview and check fetches only the selected source and shows up to five recent articles. Subscribe checks the feed before saving, and existing URLs show Subscribed. Browsing the catalog does not subscribe, fetch every site, or rename or recategorize existing subscriptions. Feeds such as arXiv can be valid but empty on non-publication days.
+The catalog lists 17 publisher-hosted RSS/Atom feeds in Technology news, AI and research, Software updates, Reading and blogs, and Life and interests. Filter by source, keywords and content language. Cards link to the publisher and show the feed URL. Preview and check fetches only the selected source and shows up to five recent articles. Subscribe checks the feed before saving, and existing URLs show Subscribed. Browsing the catalog does not subscribe, fetch every site, or rename or recategorize existing subscriptions. Feeds such as arXiv can be valid but empty on non-publication days.
 
 Enter a URL accepts your own RSS/Atom address; the name and category are optional. Pick an existing or suggested category, or type your own. New URLs are fetched and checked before saving. Renaming or recategorizing an unchanged URL works without the remote feed being online.
 

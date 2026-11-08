@@ -67,3 +67,5 @@ dsh plugin --profile desktop add dsh-rss
 [MIT](https://github.com/STARDUSTLC666/dsh-rss/blob/master/LICENSE)
 
 <a id="依赖与配置"></a>
+
+出版者收录与移除：[目录规则](docs/CATALOG-POLICY.md)。

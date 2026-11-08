@@ -68,3 +68,5 @@ If the plugin helps, a Star makes it easier for others to discover. Report probl
 
 <a id="what-it-does"></a>
 <a id="requirements-and-configuration"></a>
+
+Publisher listing and removal: [catalog policy](docs/CATALOG-POLICY.en.md).
