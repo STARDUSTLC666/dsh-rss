@@ -1,5 +1,10 @@
 # 更新记录
 
+## 0.9.13 (2026-11-14)
+
+- 适配 DSH 0.2.2-rc.3：最低 Harness 版本声明提升至 0.2.2-rc.3，运行时代码未变。
+- Support DSH 0.2.2-rc.3: raise the minimum Harness declaration to 0.2.2-rc.3; runtime code is unchanged.
+
 ## 0.9.12 (2026-11-08)
 
 - 推荐目录加入 Joho no Todai 的官网英文 RSS，仅登记名称与官方链接；默认不订阅、不抓取文章。明确免费、非独家、可申请移除的出版者收录条件，目录不授予文章或图片的额外使用权（#4）。

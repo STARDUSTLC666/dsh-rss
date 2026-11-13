@@ -1,6 +1,6 @@
 {
   "name": "dsh-rss",
-  "version": "0.9.12",
+  "version": "0.9.13",
   "description": "DSH RSS / Atom 工作台：分类来源目录、订阅读取、搜索与 OPML 导入导出，由用户选择来源。欢迎提交 issues 和 PR。",
   "type": "module",
   "main": "lib/index.js",
@@ -53,7 +53,7 @@
   "license": "MIT",
   "engines": {
     "node": "^22.19.0 || >=24.0.0",
-    "dsh": ">=0.2.1-rc.3"
+    "dsh": ">=0.2.2-rc.3"
   },
   "dependencies": {
     "@deepseek-ai/schemastery": "^3.18.3",
