@@ -24,6 +24,15 @@ RSS / Atom workbench for DeepSeek Harness (`>=0.2.2-rc.3`): browse categorized p
 - DeepSeek Harness `>=0.2.2-rc.3` Workbench UI v2 with 5 synced themes (Native Airy, Warm Cream, Claude Warmth, Bright 8-Bit, Airy Mint), tactile micro-animations, and reduced-motion support.
 - Filter and search by category, unread state, or keywords, and preview-import or export OPML backups.
 
+<details>
+<summary>See an example</summary>
+
+![workbench example](https://raw.githubusercontent.com/STARDUSTLC666/dsh-rss/master/docs/assets/intro/screen-en.webp)
+
+Captured from the live DeepSeek Harness workbench using demo data.
+
+</details>
+
 ## Install
 
 Open **Plugins** in the DSH desktop app and install `dsh-rss`. If the CLI is available:

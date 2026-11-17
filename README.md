@@ -24,6 +24,15 @@ DeepSeek Harness（`>=0.2.2-rc.3`）RSS / Atom 订阅工作台：提供分类推
 - 适配 DeepSeek Harness `>=0.2.2-rc.3` 的 Workbench UI v2 工作台，支持 5 套主题（原生清透 / 米白纸感 / Claude 暖书卷 / 8-Bit 像素 / 晴空薄荷）与微交互动效。
 - 按分类、未读或关键词阅读检索，并支持 OPML 预览导入与导出备份。
 
+<details>
+<summary>查看实际示例</summary>
+
+![workbench example](https://raw.githubusercontent.com/STARDUSTLC666/dsh-rss/master/docs/assets/intro/screen-zh.webp)
+
+图片来自验证环境的真实工作台界面，使用示例数据。
+
+</details>
+
 ## 安装
 
 在 DSH 桌面版「插件」面板安装 `dsh-rss`。已配置命令行时也可使用：
