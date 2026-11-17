@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.10.0 (2026-11-18)
+
+- 升级至 Workbench UI v2 并深度适配 DeepSeek Harness `>=0.2.2-rc.3`：按需接入宿主组件（`Button`、`Input`、`Checkbox`、`Menu`、`Modal`）并保留独立测试回退，遵循窗口顶部与侧栏留白变量及弹层拖拽排除区域，支持 Cordis 4 `ctx.effect` 热重载卸载清理。
+- 新增五套共享界面风格切换（原生清透、米白纸感、Claude 暖书卷、8-Bit 像素、晴空薄荷），默认明亮通透，宿主深色模式下采用柔和石板色底面，并与弹层菜单实时同步；补齐小按钮微交互动画与减少动态效果无障碍适配。
+- Upgrade to Workbench UI v2 for DeepSeek Harness `>=0.2.2-rc.3`: integrate lazy host UI primitives with standalone fallbacks, window-chrome clearances, overlay drag exclusions, and Cordis 4 `ctx.effect` unload cleanup.
+- Add 5 synced `[data-dsh-style]` theme presets (`harness`, `cream`, `claude`, `pixel8bit`, `mint`) with airy daylight defaults, soft-slate dark mode adaptation, tactile button/icon micro-animations, and `prefers-reduced-motion` support.
+
 ## 0.9.14 (2026-11-17)
 
 - 在工作台单独检查和安装兼容版本。自动安装默认关闭，可为该插件开启空闲时的稳定补丁更新。

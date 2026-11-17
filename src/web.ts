@@ -233,10 +233,14 @@ export function createRssSettingsBackend(
 
 export function installRssSettingsWeb(ctx: { inject?: Function }, backend: ReturnType<typeof createRssSettingsBackend>): void {
   if (typeof ctx.inject !== 'function') return
-  ctx.inject(['connection'], (host: any) => host.connection?.fetch?.register?.({
-    path: RSS_API_ROUTE, methods: ['GET', 'POST'], requestBody: 'buffered',
-    fetch: (request: Request) => backend.fetch(request),
-  }))
+  ctx.inject(['connection'], (host: any) => {
+    const mount = () => host.connection?.fetch?.register?.({
+      path: RSS_API_ROUTE, methods: ['GET', 'POST'], requestBody: 'buffered',
+      fetch: (request: Request) => backend.fetch(request),
+    })
+    if (typeof host.effect === 'function') host.effect(() => { const off = mount(); return typeof off === 'function' ? off : undefined }, 'dsh-rss: api route')
+    else mount()
+  })
   ctx.inject(['webServer'], (webCtx: any) => webCtx.effect(() => webCtx.webServer.register({
     kind: 'exact', path: RSS_SETTINGS_ROUTE,
     handler: (req: IncomingMessage, res: ServerResponse) => backend.handle(req, res),

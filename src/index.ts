@@ -43,6 +43,7 @@ export interface RssPluginContext extends ApprovalContext {
   }
   fiber?: { entry?: { options: { id: string } } }
   inject?: Function
+  effect?(fn: () => (() => unknown) | void): unknown
   tools: { register(definition: RssToolDefinition): () => void }
   on(event: 'tools/pre-execute', listener: RssPreExecuteListener): () => void
   on(event: 'dispose', listener: () => void): () => void
@@ -77,8 +78,8 @@ export function apply(ctx: RssPluginContext, config?: RssConfig | null): void {
     disposers.push(ctx.tools.register(definition))
   }
 
-  if (cfg.opmlWriteApproval) {
-    ctx.on('tools/pre-execute', async (exec, next) => {
+  if (cfg.opmlWriteApproval && typeof ctx.on === 'function') {
+    const offPre = ctx.on('tools/pre-execute', async (exec, next) => {
       if (exec.name !== 'rss_opml_export') return next()
       const args = typeof exec.arguments === 'object' && exec.arguments !== null
         ? exec.arguments as Record<string, unknown>
@@ -92,10 +93,13 @@ export function apply(ctx: RssPluginContext, config?: RssConfig | null): void {
       const safeLabel = path.replace(/[\r\n]/g, ' ').slice(0, 200)
       return { kind: 'ask', reason: '将 RSS 订阅列表导出并写入当前会话工作区文件：' + safeLabel }
     })
+    if (typeof offPre === 'function') disposers.push(offPre)
   }
-  ctx.on('dispose', () => {
-    for (const dispose of disposers) dispose()
-  })
+  const cleanup = () => {
+    for (const dispose of disposers.splice(0)) dispose()
+  }
+  if (typeof ctx.effect === 'function') ctx.effect(() => cleanup)
+  if (typeof ctx.on === 'function') ctx.on('dispose', cleanup)
 }
 
 export * from './config.js'

@@ -44,6 +44,7 @@ export interface RssPluginContext extends ApprovalContext {
         };
     };
     inject?: Function;
+    effect?(fn: () => (() => unknown) | void): unknown;
     tools: {
         register(definition: RssToolDefinition): () => void;
     };

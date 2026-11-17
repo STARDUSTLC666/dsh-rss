@@ -1,7 +1,7 @@
 // Editable browser entry. Build with node scripts/build-client.mjs.
 window.__ModuleLoader__.load({ id: 'dsh-rss', factory: require => {
         const React = require('react');
-        const W = createWorkbenchUI(React);
+        const W = createWorkbenchUI(React, require);
         const { useState, useEffect, useRef, useId } = React;
         const h = React.createElement;
         const ROUTE = 'api/dsh-rss/subscriptions';
@@ -56,37 +56,6 @@ window.__ModuleLoader__.load({ id: 'dsh-rss', factory: require => {
                 return 'No matching feed was found. Refresh the subscription list.';
             return 'The feed could not be read. Check the URL, network and proxy settings, then retry.';
         }
-        const CSS = `
-    .dshr{color:var(--dsw-alias-label-primary,#202737);font-size:14px;line-height:1.55;max-width:920px;min-width:0;overflow-wrap:anywhere}
-    .dshr *,.dshr-dialog *{box-sizing:border-box}.dshr h2{font-size:22px;margin:0 0 6px}.dshr p{margin:0 0 12px}
-    .dshr-muted{color:var(--dsw-alias-label-tertiary,#657083);font-size:13px}.dshr-toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
-    .dshr button,.dshr-dialog button{font:inherit;min-height:38px;padding:7px 12px;border:1px solid var(--dsw-alias-border-l2,#d9dee7);border-radius:9px;color:inherit;background:var(--dsw-alias-bg-layer-1,#fff);cursor:pointer}
-    .dshr button:disabled,.dshr-dialog button:disabled{opacity:.5;cursor:not-allowed}.dshr button:hover:not(:disabled),.dshr-dialog button:hover:not(:disabled){border-color:#5685d4}
-    .dshr .primary,.dshr-dialog .primary{background:#366fd2;color:#fff;border-color:#366fd2}.dshr-dialog .danger{background:#b93838;border-color:#b93838;color:#fff}
-    .dshr button:focus-visible,.dshr-dialog button:focus-visible,.dshr input:focus-visible,.dshr select:focus-visible,.dshr-dialog input:focus-visible,.dshr-dialog textarea:focus-visible{outline:2px solid #5685d4;outline-offset:2px}
-    .dshr-filters{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}.dshr-filters label:first-child{flex:1 1 220px}.dshr label,.dshr-dialog label{display:flex;flex-direction:column;gap:5px;font-size:13px;min-width:0;max-width:100%}
-    .dshr input,.dshr select,.dshr-dialog input,.dshr-dialog textarea{font:inherit;font-size:16px;width:100%;min-width:0;min-height:40px;border:1px solid var(--dsw-alias-border-l2,#d9dee7);border-radius:8px;padding:8px 10px;background:var(--dsw-alias-bg-layer-1,#fff);color:inherit}
-    .dshr-list{display:grid;gap:10px;margin:0;padding:0;list-style:none}.dshr-card{background:var(--dsw-alias-bg-layer-1,#fff);border:1px solid var(--dsw-alias-border-l2,#d9dee7);border-radius:12px;padding:14px;display:flex;flex-wrap:wrap;gap:12px}
-    .dshr-info{flex:1 1 240px;min-width:0}.dshr-info h3{font-size:15px;margin:0 0 4px;overflow-wrap:anywhere}.dshr-url{font-size:12px;overflow-wrap:anywhere;color:var(--dsw-alias-label-tertiary,#657083)}
-    .dshr-tag{display:inline-block;border-radius:6px;padding:2px 7px;background:var(--dsw-alias-bg-layer-2,#edf3fc);margin-top:7px;font-size:12px}.dshr-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-    .dshr-status{margin-top:8px;font-size:12px;overflow-wrap:anywhere}.dshr-alert{padding:10px 12px;border-radius:8px;margin:12px 0;overflow-wrap:anywhere;border:1px solid #dba2a2;background:var(--dsw-alias-bg-layer-1,#fff);color:var(--dsw-alias-state-error-primary,#a42a2a)}
-    .dshr-notice{padding:9px 12px;border-left:3px solid #366fd2;margin:10px 0;background:var(--dsw-alias-bg-layer-2,#edf3fc);overflow-wrap:anywhere}.dshr-empty{text-align:center;border:1px dashed var(--dsw-alias-border-l2,#c7d2e4);border-radius:12px;padding:32px 16px}
-    .dshr-dialog{font:inherit;line-height:1.55;color:var(--dsw-alias-label-primary,#202737);background:var(--dsw-alias-bg-layer-1,#fff);border:1px solid var(--dsw-alias-border-l2,#d9dee7);border-radius:14px;padding:22px;max-width:620px;width:calc(100% - 28px);max-height:calc(100dvh - 28px);overflow:auto;box-shadow:0 18px 70px #0003}
-    .dshr-dialog::backdrop{background:#14203366}.dshr-dialog h3{font-size:19px;margin:0 0 12px}.dshr-dialog form{display:grid;gap:14px}.dshr-dialog textarea{min-height:140px;resize:vertical}.dshr-dialog p{margin:0}.dshr-dialog .dshr-buttons{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:14px}
-    .dshr-dialog label.dshr-checkbox{display:flex;flex-direction:row;align-items:flex-start;gap:8px}.dshr-checkbox input{width:18px;height:18px;min-height:18px;margin-top:3px;flex-shrink:0}.dshr-preview{border-top:1px solid var(--dsw-alias-border-l2,#d9dee7);padding-top:12px;overflow-wrap:anywhere}.dshr-preview ul{margin:8px 0;padding-left:20px}.dshr-preview li{margin-bottom:5px}
-    .dshr-dialog.catalog{max-width:900px}.dshr-dialog select{font:inherit;min-height:40px;padding:8px;border:1px solid var(--dsw-alias-border-l2,#d9dee7);border-radius:8px;background:var(--dsw-alias-bg-layer-1,#fff);color:inherit;width:100%}
-    .dshr-dialog select:focus-visible,.dshr-dialog a:focus-visible{outline:2px solid #5685d4;outline-offset:2px}.dshr-dialog a{color:var(--dsw-alias-accent-primary,#245cb5);overflow-wrap:anywhere}.dshr-dialog .dshr-filters{margin-top:14px}.dshr-dialog .dshr-filters label{flex:1 1 140px}
-    .dshr-catalog{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;list-style:none;padding:0;margin:14px 0}.dshr-source{border:1px solid var(--dsw-alias-border-l2,#d9dee7);border-radius:12px;padding:14px;min-width:0;align-self:start}.dshr-source h4{font-size:16px;margin:0 0 6px;overflow-wrap:anywhere}.dshr-source p{margin:8px 0}.dshr-source .dshr-actions{margin-top:12px}.dshr-source.is-selected{border-color:#5685d4}.dshr-source details{margin-top:8px;font-size:12px}.dshr-source summary{cursor:pointer}.dshr-source .dshr-preview{margin-top:12px;font-size:13px}
-    @media(max-width:640px){.dshr-catalog{grid-template-columns:1fr}.dshr-dialog .dshr-filters label{flex-basis:100%}}
-    @media(max-width:520px){.dshr-dialog{padding:16px}.dshr-actions{width:100%}.dshr-filters label{width:100%}.dshr-toolbar button{flex:1 1 auto}.dshr-card{padding:12px}}
-    @media(max-width:640px){
-      [role=dialog]:has(.dshr){width:100%!important;max-width:100%!important;flex-direction:column!important}
-      [role=dialog]:has(.dshr)>nav+div{min-width:0;width:100%}
-      [role=dialog]:has(.dshr)>nav+div>div:has(.dshr){padding:12px!important;min-width:0}
-      [role=dialog]:has(.dshr)>nav{width:100%!important;flex-basis:auto!important;border-right:0;max-height:170px;overflow:auto}
-      [role=dialog]:has(.dshr)>nav>div:has(>button){display:flex;flex-direction:row!important;flex-wrap:wrap;gap:4px}
-    }
-  `;
         async function request(action, args, signal) {
             const response = await fetch(new URL(ROUTE, document.baseURI), action ? {
                 method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-DSH-RSS': '1' }, body: JSON.stringify({ action, ...args }), signal,
@@ -105,57 +74,38 @@ window.__ModuleLoader__.load({ id: 'dsh-rss', factory: require => {
             }
             return value;
         }
-        function Dialog({ title, busy, onClose, children, wide }) {
-            const ref = useRef(null);
-            const id = useId();
-            useEffect(() => { ref.current.showModal(); return () => ref.current?.close(); }, []);
-            return h('dialog', { ref, className: 'dshr-dialog' + (wide ? ' catalog' : ''), 'aria-labelledby': id,
-                onKeyDownCapture: event => {
-                    if (event.nativeEvent.isComposing)
-                        return;
-                    if (event.key === 'Escape') {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        if (!busy)
-                            onClose();
-                    }
-                    if (event.key === 'Tab') {
-                        event.stopPropagation();
-                        const targets = [...event.currentTarget.querySelectorAll('input:not([disabled]),textarea:not([disabled]),select:not([disabled]),button:not([disabled]),a[href],summary')].filter(node => node.getClientRects().length);
-                        const first = targets[0], last = targets[targets.length - 1];
-                        if (event.shiftKey && document.activeElement === first) {
-                            event.preventDefault();
-                            last?.focus();
-                        }
-                        else if (!event.shiftKey && document.activeElement === last) {
-                            event.preventDefault();
-                            first?.focus();
-                        }
-                    }
-                },
-                onCancel: event => { event.preventDefault(); event.stopPropagation(); if (!busy)
-                    onClose(); } }, h('h3', { id }, title), children);
-        }
-        function Panel({workbench=false}={}) {
-const [activeTab,setActiveTab] = useState('feeds');
-function exportFeeds(){return run('export',{},value=>{const url=URL.createObjectURL(new Blob([value.opml],{type:'text/x-opml;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download='rss-subscriptions.opml';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);setNotice(t('downloaded'));});}
+        function Panel({ workbench = false } = {}) {
+            const [activeTab, setActiveTab] = useState('feeds');
+            function exportFeeds() {
+                return run('export', {}, value => {
+                    const url = URL.createObjectURL(new Blob([value.opml], { type: 'text/x-opml;charset=utf-8' }));
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'rss-subscriptions.opml';
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                    setTimeout(() => URL.revokeObjectURL(url), 10000);
+                    setNotice(t('downloaded'));
+                });
+            }
             const [, setLanguage] = useState(language);
             const [state, setState] = useState(null), [loading, setLoading] = useState(true), [busy, setBusy] = useState('');
             const [error, setError] = useState(''), [notice, setNotice] = useState(''), [query, setQuery] = useState(''), [category, setCategory] = useState('*');
             const [modal, setModal] = useState(null), [draft, setDraft] = useState({ url: '', name: '', category: '' });
             const [opml, setOpml] = useState(''), [updateExisting, setUpdateExisting] = useState(false), [preview, setPreview] = useState(null);
             const [catalogQuery, setCatalogQuery] = useState(''), [catalogCategory, setCatalogCategory] = useState('*'), [catalogLanguage, setCatalogLanguage] = useState('*');
-            const [sourcePreviews, setSourcePreviews] = useState({}), [selectedSource, setSelectedSource] = useState('');
-            const categoryListId = useId();
+            const [sourcePreviews, setSourcePreviews] = useState({});
+            const categoryListId = typeof useId === 'function' ? useId() : 'rss-cat-list';
+            const feedFormId = categoryListId + '-form';
             const controller = useRef(null), trigger = useRef(null);
-// Update protection: dsh-rss
-__stardustUpdatesGuard(React, "dsh-rss", { dirty: !!opml.trim(), busy: !!busy || !!modal });
+            // Update protection: dsh-rss
+            __stardustUpdatesGuard(React, "dsh-rss", { dirty: !!opml.trim(), busy: !!busy || !!modal });
 
             useEffect(() => { listeners.add(setLanguage); return () => listeners.delete(setLanguage); }, []);
             useEffect(() => { void run(null); return () => controller.current?.abort(); }, []);
             async function run(action, args = {}, onSuccess) {
-                if (controller.current)
-                    return;
+                if (controller.current) return;
                 const abort = new AbortController();
                 controller.current = abort;
                 setBusy(action === 'check' && args.id ? args.id : action || 'load');
@@ -163,17 +113,14 @@ __stardustUpdatesGuard(React, "dsh-rss", { dirty: !!opml.trim(), busy: !!busy ||
                 setNotice('');
                 try {
                     const value = await request(action, args, abort.signal);
-abort.signal.throwIfAborted();
-                    if (value.snapshot)
-                        setState(value.snapshot);
-                    if (onSuccess)
-                        onSuccess(value);
+                    abort.signal.throwIfAborted();
+                    if (value.snapshot) setState(value.snapshot);
+                    if (onSuccess) onSuccess(value);
                     return value;
                 }
                 catch (failure) {
                     if (!abort.signal.aborted) {
-                        if (failure.snapshot)
-                            setState(failure.snapshot);
+                        if (failure.snapshot) setState(failure.snapshot);
                         setError(failure.message || t('loadError'));
                     }
                 }
@@ -185,9 +132,15 @@ abort.signal.throwIfAborted();
                     controller.current = null;
                 }
             }
-            function close() { if(!modal && activeTab === 'transfer') setActiveTab('feeds'); setModal(null); setError(''); setPreview(null); queueMicrotask(() => trigger.current?.focus()); }
+            function close() {
+                if (!modal && activeTab === 'transfer') setActiveTab('feeds');
+                setModal(null);
+                setError('');
+                setPreview(null);
+                queueMicrotask(() => trigger.current?.focus?.());
+            }
             function open(type, feed, event) {
-                trigger.current = event.currentTarget;
+                trigger.current = event?.currentTarget || null;
                 setError('');
                 setNotice('');
                 setPreview(null);
@@ -201,15 +154,13 @@ abort.signal.throwIfAborted();
                     setCatalogQuery('');
                     setCatalogCategory('*');
                     setCatalogLanguage('*');
-                    setSelectedSource('');
                 }
                 setModal({ type, feed });
             }
             async function chooseFile(event) {
                 const file = event.target.files?.[0];
                 event.target.value = '';
-                if (!file)
-                    return;
+                if (!file) return;
                 if (file.size > 1024 * 1024) {
                     setError(t('bodyLarge'));
                     return;
@@ -223,54 +174,155 @@ abort.signal.throwIfAborted();
                     setError(t('fileError'));
                 }
             }
-            const field = (key, hint) => h('label', { key }, t(key), h('input', {
-                name: key, type: key === 'url' ? 'url' : 'text', value: draft[key], placeholder: hint, required: key === 'url', disabled: !!busy,
-                list: key === 'category' ? categoryListId : undefined,
-                autoFocus: key === 'url', onChange: event => setDraft({ ...draft, [key]: event.target.value }),
-            }));
-            const buttons = submit => h('div', { className: 'dshr-buttons' }, h('button', { type: 'button', disabled: !!busy, onClick: close }, t('cancel')), submit);
-            const alert = error ? h('div', { role: 'alert', className: 'dshr-alert' }, error) : null;
+            const fieldIcon = { url: 'link', name: 'edit', category: 'folder' };
+            const field = (key, hint) => h('label', { key, className: 'rss-dialog-field' },
+                h('span', null, t(key)),
+                h(W.Input, {
+                    name: key,
+                    icon: fieldIcon[key] || 'file',
+                    type: key === 'url' ? 'url' : 'text',
+                    value: draft[key],
+                    placeholder: hint,
+                    required: key === 'url',
+                    disabled: !!busy,
+                    list: key === 'category' ? categoryListId : undefined,
+                    autoFocus: key === 'url',
+                    onChange: event => setDraft({ ...draft, [key]: event.target.value }),
+                }));
+
             const feeds = state?.feeds || [], writable = state?.writable === true;
             const categories = [...new Set(feeds.map(feed => feed.category))].sort();
             const catalog = state?.catalog || { categories: [], sources: [] };
-            const sourceCategory = source => localized(catalog.categories.find(category => category.id === source.category)?.name);
-            const sourceOptions = catalog.sources.filter(source => (catalogCategory === '*' || source.category === catalogCategory) &&
+            const sourceOptions = catalog.sources.filter(source =>
+                (catalogCategory === '*' || source.category === catalogCategory) &&
                 (catalogLanguage === '*' || source.language === catalogLanguage) &&
                 (source.name + ' ' + source.url + ' ' + (source.description || []).join(' ')).toLowerCase().includes(catalogQuery.trim().toLowerCase()));
-            const filtered = feeds.filter(feed => (category === '*' || feed.category === category) && (feed.name + ' ' + feed.url).toLowerCase().includes(query.trim().toLowerCase()));
-            return h(W.Page,{workbench,title:t('title'),subtitle:rssText('选择可信来源，先预览再订阅。','Choose trusted sources. Preview before subscribing.'),className:'dshr rss-workbench',actions:h(React.Fragment,null,
- h(W.Button,{icon:'plus',variant:'primary',disabled:!writable || !!busy,onClick:event=>open('feed',null,event)},t('add')),
- h(W.Button,{icon:'rss',disabled:!state || !!busy,onClick:()=>setActiveTab('catalog')},t('recommended')))},
- h('style',null,RSS_WORKBENCH_CSS),
- state && !writable ? h(W.Status,null,t('readonly')) : null,
- !modal ? h(W.Status,{tone:'error'},error) : null,h(W.Status,{tone:'success'},notice),
- h(W.Tabs,{label:rssText('RSS 视图','RSS views'),value:activeTab,onChange:setActiveTab,items:[{id:'feeds',label:rssText('我的订阅','My feeds')},{id:'catalog',label:t('recommended')},{id:'transfer',label:rssText('导入与导出','Import and export')}]},
- loading ? h(W.Empty,{title:t('loading'),icon:'rss'}) : !state ? h(W.Empty,{title:t('loadError'),action:h(W.Button,{disabled:!!busy,onClick:()=>run(null)},t('retry'))}) :
- activeTab === 'feeds' ? h(RssFeedBrowser,{feeds,filtered,categories,query,setQuery,category,setCategory,writable,busy,run,open}) :
- activeTab === 'catalog' ? h(RssCatalog,{catalog,sources:sourceOptions,query:catalogQuery,setQuery:setCatalogQuery,category:catalogCategory,setCategory:setCatalogCategory,contentLanguage:catalogLanguage,setContentLanguage:setCatalogLanguage,busy,writable,state,run,previews:sourcePreviews,setPreviews:setSourcePreviews,setNotice}) :
- h('div',{className:'rss-transfer'},h('div',{className:'w-toolbar'},h('h3',null,rssText('订阅备份与迁移','Back up and move subscriptions')),h(W.Button,{icon:'download',disabled:!state || !!busy,onClick:exportFeeds},t('export'))),h('p',{className:'w-muted'},t('preserve')),h('form', { onSubmit: event => { event.preventDefault(); void run('preview', { opml, updateExisting }, value => setPreview(value.preview)); } }, h('p', { className: 'dshr-muted' }, t('importHint')), h('label', null, t('file'), h('input', { type: 'file', accept: '.opml,.xml,text/xml,application/xml,text/x-opml', disabled: !!busy, onChange: chooseFile })), h('label', null, t('opml'), h('textarea', { required: true, autoFocus: true, value: opml, disabled: !!busy, onChange: event => { setOpml(event.target.value); setPreview(null); } })), h('label', { className: 'dshr-checkbox' }, h('input', { type: 'checkbox', checked: updateExisting, disabled: !!busy, onChange: event => { setUpdateExisting(event.target.checked); setPreview(null); } }), t('update')), h('p', { className: 'dshr-muted' }, t('preserve')), preview ? h('div', { className: 'dshr-preview', role: 'status' }, h('strong', null, `${t('new')} ${preview.addedCount} · ${t('duplicates')} ${preview.existedCount} · ${t('invalid')} ${preview.skippedCount}`), !preview.addedCount && !preview.existedCount ? h('p', null, t('previewEmpty')) : null, h('ul', null, preview.added.slice(0, 20).map(feed => h('li', { key: feed.url }, t('new'), '：', feed.name || feed.url, ' · ', feed.category || t('uncategorized'))), (preview.duplicates || []).slice(0, 20).map((item, index) => h('li', { key: 'duplicate-' + index }, t('duplicates'), '：', item.before.name || item.url, ' · ', item.before.category || t('uncategorized'), updateExisting ? ' → ' + (item.after.name || item.url) + ' · ' + (item.after.category || t('uncategorized')) : ' · ' + t('keep'))), preview.skipped.slice(0, 20).map((item, index) => h('li', { key: index }, item.title, ' · ', item.url, language === 'en' ? ': ' : '：', feedError(item.reason)))), preview.added.length > 20 || preview.skipped.length > 20 || (preview.duplicates || []).length > 20 ? h('p', { className: 'dshr-muted' }, t('previewLimit')) : null) : null, h('div', { className: 'dshr-buttons' }, h('button', { type: 'button', disabled: !!busy, onClick: close }, t('cancel')), h('button', { type: 'submit', disabled: !!busy || !opml.trim() }, t(busy === 'preview' ? 'saving' : 'preview')), preview ? h('button', { type: 'button', className: 'primary', disabled: !!busy || !(preview.addedCount || updateExisting && preview.existedCount), onClick: () => run('import', { opml, updateExisting, revision: preview.revision, token: preview.token }, value => {
-                                close();
-                                setNotice(`${t('imported')} · ${t('new')} ${value.result.addedCount} · ${t('duplicates')} ${value.result.existedCount} · ${t('invalid')} ${value.result.skippedCount}`);
-                            }) }, t(busy === 'import' ? 'saving' : 'confirm')) : null)))),
- modal ? h(Dialog,{title:modal.type === 'remove' ? t('deleteTitle') : modal.feed ? t('edit') : t('add'),busy:!!busy,onClose:close},alert,modal.type === 'feed' ? h('form', { onSubmit: event => { event.preventDefault(); void run(modal.feed ? 'edit' : 'add', { ...draft, id: modal.feed?.id, revision: state.revision }, () => { close(); setNotice(t('saved')); }); } }, field('url', 'https://example.com/feed.xml'), field('name', t('nameHint')), field('category', t('categoryHint')), h('datalist', { id: categoryListId }, [...new Set([...categories, ...catalog.categories.map(category => localized(category.name))])].filter(Boolean).map(value => h('option', { key: value, value }))), h('p', { className: 'dshr-muted' }, t('customCategory')), error ? h('button', { type: 'button', disabled: !!busy, onClick: () => run(null) }, t('refresh')) : null, buttons(h('button', { type: 'submit', className: 'primary', disabled: !!busy }, t(busy ? 'saving' : 'save')))) : h('div', null, h('strong', null, modal.feed.name || modal.feed.url), h('p', { className: 'dshr-url' }, modal.feed.url), h('p', null, t('deleteHint')), buttons(h('button', { className: 'danger', disabled: !!busy, onClick: () => run('remove', { id: modal.feed.id, revision: state.revision }, () => { close(); setNotice(t('removed')); }) }, t(busy ? 'saving' : 'remove'))))) : null);
+            const filtered = feeds.filter(feed =>
+                (category === '*' || feed.category === category) &&
+                (feed.name + ' ' + feed.url).toLowerCase().includes(query.trim().toLowerCase()));
+
+            return h(W.Page, {
+                workbench,
+                icon: 'rss',
+                lang: language,
+                title: t('title'),
+                subtitle: rssText('选择可信来源，先预览再订阅。', 'Choose trusted sources. Preview before subscribing.'),
+                className: 'dshr rss-workbench',
+                actions: h(React.Fragment, null,
+                    h(W.Button, { icon: 'plus', variant: 'primary', disabled: !writable || !!busy, onClick: event => open('feed', null, event) }, t('add')),
+                    h(W.Button, { icon: 'rss', disabled: !state || !!busy, onClick: () => setActiveTab('catalog') }, t('recommended')),
+                    h(W.IconButton, { icon: 'refresh', spinning: busy === 'load', label: t('refresh'), disabled: !!busy, onClick: () => run(null) })),
+            },
+                h('style', { 'data-plugin-css': 'dsh-rss/workbench' }, RSS_WORKBENCH_CSS),
+                state && !writable ? h(W.Status, { tone: 'warn' }, t('readonly')) : null,
+                !modal ? h(W.Status, { tone: 'error' }, error) : null,
+                h(W.Status, { tone: 'success' }, notice),
+                h(W.Tabs, {
+                    label: rssText('RSS 视图', 'RSS views'),
+                    value: activeTab,
+                    onChange: setActiveTab,
+                    items: [
+                        { id: 'feeds', label: rssText('我的订阅', 'My feeds'), count: feeds.length },
+                        { id: 'catalog', label: t('recommended'), count: catalog.sources.length || undefined },
+                        { id: 'transfer', label: rssText('导入与导出', 'Import and export') },
+                    ],
+                },
+                    loading ? h(W.Empty, { title: t('loading'), icon: 'rss' })
+                    : !state ? h(W.Empty, { title: t('loadError'), icon: 'rss', action: h(W.Button, { icon: 'refresh', disabled: !!busy, onClick: () => run(null) }, t('retry')) })
+                    : activeTab === 'feeds' ? h(RssFeedBrowser, { feeds, filtered, categories, query, setQuery, category, setCategory, writable, busy, run, open })
+                    : activeTab === 'catalog' ? h(RssCatalog, { catalog, sources: sourceOptions, query: catalogQuery, setQuery: setCatalogQuery, category: catalogCategory, setCategory: setCatalogCategory, contentLanguage: catalogLanguage, setContentLanguage: setCatalogLanguage, busy, writable, state, run, previews: sourcePreviews, setPreviews: setSourcePreviews, setNotice })
+                    : h('div', { className: 'rss-transfer' },
+                        h('div', { className: 'rss-transfer-head' },
+                            h('div', null,
+                                h('h3', null, rssText('订阅备份与迁移', 'Back up and move subscriptions')),
+                                h('p', { className: 'rss-muted' }, t('preserve'))),
+                            h(W.Button, { icon: 'download', disabled: !state || !!busy, onClick: exportFeeds }, t('export'))),
+                        h('form', {
+                            className: 'rss-transfer-card',
+                            'data-dsh-card': '',
+                            onSubmit: event => {
+                                event.preventDefault();
+                                void run('preview', { opml, updateExisting }, value => setPreview(value.preview));
+                            },
+                        },
+                            h('p', { className: 'rss-muted' }, t('importHint')),
+                            h('label', { className: 'rss-transfer-field' },
+                                h('span', null, t('file')),
+                                h('input', { className: 'rss-file-input', type: 'file', accept: '.opml,.xml,text/xml,application/xml,text/x-opml', disabled: !!busy, onChange: chooseFile })),
+                            h('label', { className: 'rss-transfer-field' },
+                                h('span', null, t('opml')),
+                                h('textarea', { className: 'dsh-wb-textarea', required: true, autoFocus: true, value: opml, disabled: !!busy, onChange: event => { setOpml(event.target.value); setPreview(null); } })),
+                            h(W.Checkbox, {
+                                label: t('update'),
+                                checked: updateExisting,
+                                disabled: !!busy,
+                                onChange: checked => { setUpdateExisting(checked); setPreview(null); },
+                            }),
+                            preview ? h('div', { className: 'rss-preview-box', role: 'status' },
+                                h('strong', null, `${t('new')} ${preview.addedCount} · ${t('duplicates')} ${preview.existedCount} · ${t('invalid')} ${preview.skippedCount}`),
+                                !preview.addedCount && !preview.existedCount ? h('p', null, t('previewEmpty')) : null,
+                                h('ul', null,
+                                    preview.added.slice(0, 20).map(feed => h('li', { key: feed.url }, t('new'), '：', feed.name || feed.url, ' · ', feed.category || t('uncategorized'))),
+                                    (preview.duplicates || []).slice(0, 20).map((item, index) => h('li', { key: 'duplicate-' + index }, t('duplicates'), '：', item.before.name || item.url, ' · ', item.before.category || t('uncategorized'), updateExisting ? ' → ' + (item.after.name || item.url) + ' · ' + (item.after.category || t('uncategorized')) : ' · ' + t('keep'))),
+                                    preview.skipped.slice(0, 20).map((item, index) => h('li', { key: index }, item.title, ' · ', item.url, language === 'en' ? ': ' : '：', feedError(item.reason)))),
+                                preview.added.length > 20 || preview.skipped.length > 20 || (preview.duplicates || []).length > 20 ? h('p', { className: 'rss-muted' }, t('previewLimit')) : null) : null,
+                            h('div', { className: 'dsh-wb-toolbar' },
+                                h(W.Button, { type: 'button', icon: 'close', disabled: !!busy, onClick: close }, t('cancel')),
+                                h(W.Button, { type: 'submit', icon: 'search', disabled: !!busy || !opml.trim() }, t(busy === 'preview' ? 'saving' : 'preview')),
+                                preview ? h(W.Button, {
+                                    type: 'button',
+                                    variant: 'primary',
+                                    icon: 'check',
+                                    disabled: !!busy || !(preview.addedCount || (updateExisting && preview.existedCount)),
+                                    onClick: () => run('import', { opml, updateExisting, revision: preview.revision, token: preview.token }, value => {
+                                        close();
+                                        setNotice(`${t('imported')} · ${t('new')} ${value.result.addedCount} · ${t('duplicates')} ${value.result.existedCount} · ${t('invalid')} ${value.result.skippedCount}`);
+                                    }),
+                                }, t(busy === 'import' ? 'saving' : 'confirm')) : null)))),
+                modal ? h(W.Dialog, {
+                    title: modal.type === 'remove' ? t('deleteTitle') : modal.feed ? t('edit') : t('add'),
+                    tone: modal.type === 'remove' ? 'warn' : undefined,
+                    closeLabel: t('close'),
+                    busy: !!busy,
+                    onClose: close,
+                    footer: modal.type === 'feed' ? h(React.Fragment, null,
+                        error ? h(W.Button, { icon: 'refresh', disabled: !!busy, onClick: () => run(null) }, t('refresh')) : null,
+                        h(W.Button, { disabled: !!busy, onClick: close }, t('cancel')),
+                        h(W.Button, { type: 'submit', form: feedFormId, variant: 'primary', icon: 'check', disabled: !!busy }, t(busy ? 'saving' : 'save')))
+                    : h(React.Fragment, null,
+                        h(W.Button, { disabled: !!busy, onClick: close }, t('cancel')),
+                        h(W.Button, { variant: 'danger', icon: 'trash', disabled: !!busy, onClick: () => run('remove', { id: modal.feed.id, revision: state.revision }, () => { close(); setNotice(t('removed')); }) }, t(busy ? 'saving' : 'remove'))),
+                },
+                    error ? h(W.Status, { tone: 'error', className: 'rss-dialog-status' }, error) : null,
+                    modal.type === 'feed' ? h('form', {
+                        id: feedFormId,
+                        className: 'rss-dialog-form',
+                        onSubmit: event => {
+                            event.preventDefault();
+                            void run(modal.feed ? 'edit' : 'add', { ...draft, id: modal.feed?.id, revision: state.revision }, () => { close(); setNotice(t('saved')); });
+                        },
+                    },
+                        field('url', 'https://example.com/feed.xml'),
+                        field('name', t('nameHint')),
+                        field('category', t('categoryHint')),
+                        h('datalist', { id: categoryListId }, [...new Set([...categories, ...catalog.categories.map(item => localized(item.name))])].filter(Boolean).map(value => h('option', { key: value, value }))),
+                        h('p', { className: 'rss-dialog-muted' }, t('customCategory')))
+                    : h('div', { className: 'rss-dialog-confirm' },
+                        h('strong', null, modal.feed.name || modal.feed.url),
+                        h('p', { className: 'rss-dialog-url' }, modal.feed.url),
+                        h('p', null, t('deleteHint')))) : null);
         }
         function apply(ctx) {
-W.register(ctx,{id:'dsh-rss.workbench',label:()=>t('title'),icon:'rss',component:Panel,order:56});
-
+            W.register(ctx, { id: 'dsh-rss.workbench', label: () => t('title'), icon: 'rss', component: Panel, order: 56 });
             ctx.effect(() => {
                 const service = ctx.get ? ctx.get('locale') : ctx.locale;
-                const update = () => { language = String(service?.getSnapshot?.().active || 'zh').startsWith('en') ? 'en' : 'zh'; for (const notify of listeners)
-                    notify(language); };
+                const update = () => {
+                    language = String(service?.getSnapshot?.().active || 'zh').startsWith('en') ? 'en' : 'zh';
+                    for (const notify of listeners) notify(language);
+                };
                 update();
                 return service?.subscribe?.(update) || (() => { });
             }, 'dsh-rss: locale');
-            ctx.effect(() => {
-                const style = document.createElement('style');
-                style.dataset.pluginCss = 'dsh-rss/client';
-                style.textContent = CSS;
-                document.head.appendChild(style);
-                return () => style.remove();
-            }, 'dsh-rss: styles');
             ctx.slots.inject('settings.section', () => ctx.slots.register({ name: 'settings.section', id: 'dsh-rss', order: 55, label: () => {
                     let lang = language;
                     try {

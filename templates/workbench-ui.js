@@ -1,152 +1,1381 @@
-/* DSH workbench UI v1. MIT. Canonical source: dsh-suite/ui/workbench-ui.js.
- * Vendored into each plugin: no Suite or extra runtime dependency is required.
- * Styles are scoped to .dshw and never replace the host chrome or theme.
+/* DSH Workbench UI v2 — DeepSeek Harness (>=0.2.2-rc.3) Host Primitives,
+ * 5-Style Theme Switcher (`harness`, `cream`, `claude`, `pixel8bit`, `mint`),
+ * Never-Too-Dark Soft Slate Adaptation, and Tactile Micro-Motion.
  */
-function createWorkbenchUI(React) {
+function createWorkbenchUI(React, require) {
   const h = React.createElement;
-  const { useEffect, useId, useRef } = React;
   const cx = (...values) => values.filter(Boolean).join(' ');
-  const paths = {
-    book: ['M4 4h6a3 3 0 0 1 2 2v15a4 4 0 0 0-4-2H4z', 'M20 4h-6a3 3 0 0 0-2 2v15a4 4 0 0 1 4-2h4z'],
-    calendar: ['M5 5h14a2 2 0 0 1 2 2v13H3V7a2 2 0 0 1 2-2Z', 'M7 3v4M17 3v4M3 10h18'],
-    mail: ['M3 5h18v14H3z', 'm3 6 9 7 9-7'],
-    rss: ['M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16', 'M4 19h.01'],
-    slides: ['M3 4h18v13H3z', 'M12 17v4M8 21h8'],
-    shield: ['m12 3 8 3v6c0 4-4 7-8 9-4-2-8-5-8-9V6z', 'm8 12 3 3 5-6'],
-    layers: ['M5 3h16v16H5z', 'M2 7v15h15'],
-    play: ['m9 6 9 6-9 6Z'],
-    video: ['M3 5h12v14H3z', 'm15 10 6-4v12l-6-4'],
-    search: ['M10.5 18a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15Z', 'm16 16 5 5'],
-    plus: ['M12 5v14M5 12h14'],
-    refresh: ['M20 7a9 9 0 1 0 1 8', 'M20 2v5h-5'],
-    settings: ['m9 3-.7 2.4-2 .9L4 5.8 2.5 8.4l1.7 1.8v2.3L2.5 14 4 17l2.5-.4 1.9 1L9 20h3l.8-2.4 2-1 2.5.4 1.5-2.7-1.7-1.9v-2.2l1.7-1.8-1.5-2.6-2.5.4-2-1L12 3Z', 'M14 11.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z'],
-    close: ['m6 6 12 12M18 6 6 18'],
-    left: ['m14 5-7 7 7 7'],
-    right: ['m10 5 7 7-7 7'],
-    down: ['m5 9 7 7 7-7'],
-    filter: ['M4 5h16M7 12h10M10 19h4'],
-    download: ['M12 3v12m-5-5 5 5 5-5', 'M4 16v5h16v-5'],
-    upload: ['M12 16V4m-5 5 5-5 5 5', 'M4 16v5h16v-5'],
-    copy: ['M8 8h13v13H8z', 'M16 8V3H3v13h5'],
-    external: ['M14 3h7v7m0-7L10 14', 'M10 3H3v18h18v-7'],
-    file: ['M4 3h10l6 6v12H4z', 'M14 3v6h6M8 13h8M8 17h6'],
-    folder: ['M3 5h7l2 3h9v12H3z'],
-    edit: ['m15 4 5 5-10 10-6 1 1-6Z', 'm13 6 5 5'],
-    trash: ['M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7'],
-    more: ['M5 12h.01M12 12h.01M19 12h.01'],
-    info: ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z', 'M12 11v6M12 7h.01'],
-    check: ['m5 12 4 4L19 6'],
-    quote: ['M4 12h6v7H3v-7c0-4 2-6 5-7M15 12h6v7h-7v-7c0-4 2-6 5-7'],
-    star: ['m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z'],
-    reply: ['m9 5-7 7 7 7v-5h6c3 0 5 2 6 5 0-8-4-11-12-11Z'],
-    link: ['m10 13 4-4M8 16l-2 2a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0', 'm14 8 2-2a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0'],
+  const useSafeId = (fallback = 'dsh-wb-id') => (typeof React.useId === 'function' ? React.useId() : fallback);
+  const useSafeState = initial => (
+    typeof React.useState === 'function'
+      ? React.useState(initial)
+      : [typeof initial === 'function' ? initial() : initial, () => {}]
+  );
+  const useSafeRef = initial => (typeof React.useRef === 'function' ? React.useRef(initial) : { current: initial });
+  const useSafeEffect = (fn, deps) => {
+    if (typeof React.useEffect === 'function') React.useEffect(fn, deps);
   };
-  function Icon({ name = 'file', size = 20, ...props }) {
-    return h('svg', { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true, focusable: false, ...props },
-      (paths[name] || paths.file).map((d, index) => h('path', { key: index, d })));
+
+  // Lazy host primitive resolution: NEVER call require('@deepseek-ai/dsh-client-ui-primitives') eagerly!
+  const primitives = () => resolveHostPrimitives(React, require);
+  const StyleSwitcher = createStyleSwitcherComponent(React, require);
+
+  const WORKBENCH_ICON_PATHS = Object.freeze({
+    ...DSH_ICON_PATHS,
+    filter: ['M4 5h16M7 12h10M10 19h4'],
+    upload: ['M12 16V4m-5 5 5-5 5 5', 'M4 16v5h16v-5'],
+    more: ['M5 12h.01M12 12h.01M19 12h.01'],
+    settings: [
+      'm9 3-.7 2.4-2 .9L4 5.8 2.5 8.4l1.7 1.8v2.3L2.5 14 4 17l2.5-.4 1.9 1L9 20h3l.8-2.4 2-1 2.5.4 1.5-2.7-1.7-1.9v-2.2l1.7-1.8-1.5-2.6-2.5.4-2-1L12 3Z',
+      'M14 11.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z',
+    ],
+    book: ['M4 4h6a3 3 0 0 1 2 2v15a4 4 0 0 0-4-2H4z', 'M20 4h-6a3 3 0 0 0-2 2v15a4 4 0 0 1 4-2h4z'],
+    slides: ['M3 4h18v13H3z', 'M12 17v4M8 21h8'],
+    layers: ['M5 3h16v16H5z', 'M2 7v15h15'],
+    video: ['M3 5h12v14H3z', 'm15 10 6-4v12l-6-4'],
+    quote: ['M4 12h6v7H3v-7c0-4 2-6 5-7M15 12h6v7h-7v-7c0-4 2-6 5-7'],
+  });
+
+  function Icon({ name = 'file', size = 16, ...props }) {
+    return renderDshIcon(React, { name, size, paths: WORKBENCH_ICON_PATHS, ...props });
   }
-  function Button({ children, icon, variant, className, ...props }) {
-    return h('button', { type: 'button', ...props, className: cx('w-button', variant && 'w-' + variant, className) }, icon ? h(Icon, { name: icon, size: 18 }) : null, children);
+
+  function Button({
+    children,
+    icon,
+    iconSize = 15,
+    variant = 'outline',
+    size = 'sm',
+    spinning = false,
+    copied = false,
+    className,
+    ...props
+  }) {
+    const P = primitives();
+    const resolvedVariant = variant || 'outline';
+    const hostVariant = resolvedVariant === 'danger'
+      ? 'ghost'
+      : (resolvedVariant === 'primary' || resolvedVariant === 'ghost' ? resolvedVariant : 'outline');
+    return h(
+      P.Button,
+      {
+        variant: hostVariant,
+        size,
+        'aria-busy': spinning ? 'true' : props['aria-busy'],
+        'data-copied': copied ? 'true' : props['data-copied'],
+        ...props,
+        className: cx('dsh-wb-btn', 'dsh-wb-btn-' + resolvedVariant, className),
+        icon: icon ? h(Icon, { name: icon, size: iconSize, 'data-spinning': spinning ? 'true' : undefined }) : undefined,
+      },
+      children,
+    );
   }
-  function IconButton({ label, icon, ...props }) {
-    return h(Button, { ...props, icon, className: cx('w-icon-button', props.className), 'aria-label': label, title: label });
+
+  function IconButton({ label, icon, iconSize = 16, variant = 'ghost', size = 'sm', spinning = false, className, ...props }) {
+    return h(Button, {
+      ...props,
+      icon,
+      iconSize,
+      variant,
+      size,
+      spinning,
+      className: cx('dsh-wb-icon-btn', className),
+      'aria-label': label,
+      title: props.title ?? label,
+    });
   }
-  function Page({ title, subtitle, actions, children, workbench = false, className, rootRef, ...props }) {
-    return h('section', { ...props, ref: rootRef, className: cx('dshw', 'w-page', className), 'data-main': workbench ? 'true' : 'false' },
-      h(Styles, { key: 'styles' }),
-      h('header', { className: 'w-page-header' }, h('div', { className: 'w-heading' }, h('h1', null, title), subtitle ? h('p', { className: 'w-subtitle' }, subtitle) : null), actions ? h('div', { className: 'w-header-actions' }, actions) : null),
-      h('div', { className: 'w-body' }, children));
+
+  function Input({ icon, className, ...props }) {
+    const P = primitives();
+    return h(P.Input, {
+      ...props,
+      icon: icon ? h(Icon, { name: icon, size: 15 }) : undefined,
+      className: cx('dsh-wb-input', className),
+    });
   }
-  function Tabs({ items, value, onChange, label, children }) {
-    const id = useId();
+
+  function Checkbox({ label, checked = false, onChange, hiddenLabel = false, disabled = false, className, ...props }) {
+    const P = primitives();
+    return h(P.Checkbox, {
+      ...props,
+      checked: Boolean(checked),
+      disabled: Boolean(disabled),
+      label,
+      className: cx('dsh-wb-checkbox', hiddenLabel && 'dsh-wb-checkbox-hidden', className),
+      onChange: next => {
+        const value = typeof next === 'boolean' ? next : Boolean(next?.target?.checked);
+        onChange?.(value);
+      },
+    });
+  }
+
+  function Switch({ label, checked = false, onChange, disabled = false, className }) {
+    const P = primitives();
+    return h(
+      'div',
+      { className: cx('dsh-wb-switch-row', className) },
+      h(P.Switch, {
+        checked: Boolean(checked),
+        disabled: Boolean(disabled),
+        label,
+        className: 'dsh-wb-switch',
+        onChange: next => {
+          const value = typeof next === 'boolean' ? next : Boolean(next?.target?.checked);
+          onChange?.(value);
+        },
+      }),
+      h('span', { className: 'dsh-wb-switch-text' }, label),
+    );
+  }
+
+  function ChoiceMenu({
+    label,
+    id,
+    value,
+    items = [],
+    onChange,
+    disabled = false,
+    children,
+    className,
+    align = 'start',
+    icon,
+  }) {
+    const [open, setOpen] = useSafeState(false);
+    const [style] = useDshStyle(React);
+    const P = primitives();
+    const currentValue = String(value ?? '');
+    const selected = items.find(item => String(item.id) === currentValue);
+    return h(
+      'div',
+      { className: cx('dsh-wb-choice', className), 'data-window-drag-exclude': '' },
+      h(P.Menu, {
+        open: Boolean(open && !disabled),
+        selectedId: currentValue,
+        dshStyle: style,
+        items: items.map(item => ({ ...item, id: String(item.id) })),
+        align,
+        portal: !P.isFallback,
+        autoFocus: true,
+        minWidthFromAnchor: true,
+        className: 'dsh-wb-menu',
+        onClose: () => setOpen(false),
+        onSelect: next => {
+          setOpen(false);
+          if (String(next) !== currentValue) onChange?.(next);
+        },
+        anchor: h(
+          Button,
+          {
+            id,
+            variant: 'outline',
+            className: 'dsh-wb-menu-btn',
+            disabled: Boolean(disabled || items.length === 0),
+            'aria-label': label,
+            'aria-haspopup': 'menu',
+            'aria-expanded': Boolean(open && !disabled),
+            onClick: () => setOpen(prev => !prev),
+            onKeyDown: event => {
+              if (!open && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+                event.preventDefault?.();
+                setOpen(true);
+              }
+            },
+          },
+          icon ? h(Icon, { name: icon, size: 14 }) : null,
+          h('span', { className: 'dsh-wb-menu-value' }, children ?? selected?.label ?? label),
+          h(Icon, { name: 'down', size: 14 }),
+        ),
+      }),
+    );
+  }
+
+  function Search({ label, value = '', onChange, clearLabel = 'Clear', disabled = false, className, ...props }) {
+    const id = useSafeId('dsh-wb-search');
+    const hasValue = String(value || '').length > 0;
+    return h(
+      'div',
+      { className: cx('dsh-wb-search', className) },
+      h(Input, {
+        type: 'search',
+        id,
+        icon: 'search',
+        'aria-label': label,
+        placeholder: label,
+        value,
+        disabled,
+        onChange,
+        ...props,
+      }),
+      hasValue && !disabled
+        ? h(IconButton, {
+            icon: 'close',
+            iconSize: 13,
+            label: clearLabel,
+            className: 'dsh-wb-search-clear',
+            onClick: () => onChange?.({ target: { value: '' } }),
+          })
+        : null,
+    );
+  }
+
+  function Page({
+    title,
+    subtitle,
+    icon = 'shield',
+    lang = 'zh',
+    navigation,
+    toolbar,
+    actions,
+    children,
+    workbench = false,
+    showUpdates = true,
+    className,
+    rootRef,
+    style: controlledStyle,
+    onStyleChange,
+    styleSwitcherId,
+    ...props
+  }) {
+    const [syncedStyle, setSyncedStyle] = useDshStyle(React);
+    const activeStyle = normalizeDshStyle(controlledStyle ?? syncedStyle);
+    return h(
+      'section',
+      {
+        ...props,
+        ref: rootRef,
+        className: cx('dsh-wb-page', !workbench && 'dsh-wb-embedded', className),
+        'data-dsh-style': activeStyle,
+        'data-main': workbench ? 'true' : 'false',
+      },
+      h(Styles, { key: 'dsh-wb-styles' }),
+      h(
+        'header',
+        { className: 'dsh-wb-header' },
+        h(
+          'div',
+          { className: 'dsh-wb-heading' },
+          h(
+            'h1',
+            { className: 'dsh-wb-title', 'data-dsh-editorial-heading': '' },
+            h('span', { className: 'dsh-wb-brand', 'aria-hidden': 'true' }, h(Icon, { name: icon, size: 16 })),
+            h('span', null, title),
+          ),
+          subtitle ? h('p', { className: 'dsh-wb-subtitle' }, subtitle) : null,
+        ),
+        navigation,
+        h(
+          'div',
+          { className: 'dsh-wb-header-actions', 'data-window-drag-exclude': '' },
+          actions,
+          h(StyleSwitcher, {
+            id: styleSwitcherId,
+            style: activeStyle,
+            lang,
+            compact: true,
+            onChange: next => {
+              setSyncedStyle(next);
+              onStyleChange?.(next);
+            },
+          }),
+        ),
+      ),
+      toolbar ? h('div', { className: 'dsh-wb-subbar' }, toolbar) : null,
+      h('div', { className: 'dsh-wb-body', 'data-show-updates': showUpdates ? 'true' : 'false' }, children),
+    );
+  }
+
+  function Tabs({ items = [], value, onChange, label, id: customId, children, footer, className }) {
+    const baseId = customId || useSafeId('dsh-wb-tabs');
     const active = items.some(item => item.id === value) ? value : items[0]?.id;
-    function keys(event, index) {
+    function onKeyDown(event, index) {
       if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-      event.preventDefault();
-      const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + items.length) % items.length;
-      const node = event.currentTarget.parentElement?.querySelectorAll('[role=tab]')[next];
-      if (node) { onChange(items[next].id); node.focus(); }
+      event.preventDefault?.();
+      const step = event.key === 'ArrowRight' ? 1 : -1;
+      const next = event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+          ? items.length - 1
+          : (index + step + items.length) % items.length;
+      if (items[next]) {
+        onChange?.(items[next].id);
+        event.currentTarget?.parentElement?.querySelectorAll?.('[role="tab"]')?.[next]?.focus?.();
+      }
     }
-    return h('div', { className: 'w-tabs-layout' },
-      h('div', { className: 'w-tabs', role: 'tablist', 'aria-label': label }, items.map((item, index) => h('button', {
-        type: 'button', role: 'tab', key: item.id, id: id + '-' + item.id, 'aria-controls': id + '-panel', 'aria-selected': active === item.id, tabIndex: active === item.id ? 0 : -1,
-        onClick: () => onChange(item.id), onKeyDown: event => keys(event, index),
-      }, item.label, item.count !== undefined ? h('span', { className: 'w-count' }, item.count) : null))),
-      h('div', { className: 'w-tab-panel', id: id + '-panel', role: 'tabpanel', 'aria-labelledby': id + '-' + active }, children));
+    const tablist = h(
+      'div',
+      { className: cx('dsh-wb-tabs', className), role: 'tablist', 'aria-label': label },
+      items.map((item, index) =>
+        h(
+          Button,
+          {
+            key: item.id,
+            variant: 'ghost',
+            icon: item.icon,
+            role: 'tab',
+            id: baseId + '-tab-' + item.id,
+            'aria-controls': baseId + '-panel',
+            'aria-selected': active === item.id,
+            tabIndex: active === item.id ? 0 : -1,
+            className: 'dsh-wb-tab',
+            onClick: () => onChange?.(item.id),
+            onKeyDown: event => onKeyDown(event, index),
+          },
+          h('span', null, item.label),
+          item.count !== undefined ? h('span', { className: 'dsh-wb-count' }, item.count) : null,
+        ),
+      ),
+    );
+    if (children === undefined && footer === undefined) return tablist;
+    return h(
+      'div',
+      { className: 'dsh-wb-tabs-layout' },
+      tablist,
+      h(
+        'div',
+        {
+          className: 'dsh-wb-tab-panel',
+          id: baseId + '-panel',
+          role: 'tabpanel',
+          'aria-labelledby': baseId + '-tab-' + active,
+        },
+        children,
+        footer,
+      ),
+    );
   }
-  function Status({ children, tone = 'info', className }) {
+
+  function Status({ children, tone = 'info', action, className }) {
     if (!children) return null;
-    return h('div', { className: cx('dshw', 'w-status', 'w-status-' + tone, className), role: tone === 'error' ? 'alert' : 'status', 'aria-live': tone === 'error' ? 'assertive' : 'polite' }, h(Icon, { name: tone === 'success' ? 'check' : 'info', size: 18 }), h('div', null, children));
+    return h(
+      'div',
+      {
+        className: cx('dsh-wb-status', className),
+        'data-tone': tone,
+        role: tone === 'error' ? 'alert' : 'status',
+        'aria-live': tone === 'error' ? 'assertive' : 'polite',
+      },
+      h(Icon, { name: tone === 'success' ? 'check' : 'info', size: 16 }),
+      h('div', { className: 'dsh-wb-status-text' }, children),
+      action ? h('div', { className: 'dsh-wb-status-action' }, action) : null,
+    );
   }
-  function Empty({ title, children, action, icon = 'file' }) {
-    return h('div', { className: 'dshw w-empty' }, h(Styles, { key: 'styles' }), h(Icon, { name: icon, size: 32 }), h('h2', null, title), children ? h('div', { className: 'w-muted' }, children) : null, action ? h('div', { className: 'w-toolbar' }, action) : null);
+
+  function Empty({ title, children, action = null, icon = 'file', className }) {
+    return h(
+      'div',
+      { className: cx('dsh-wb-empty', className) },
+      h('span', { className: 'dsh-wb-empty-icon', 'aria-hidden': 'true' }, h(Icon, { name: icon, size: 22 })),
+      h('h2', null, title),
+      children ? h('div', { className: 'dsh-wb-empty-desc' }, children) : null,
+      action ? h('div', { className: 'dsh-wb-actions' }, action) : null,
+    );
   }
+
   function Split({ list, detail, selected, onBack, backLabel, className, listWidth = 360 }) {
-    const ref = useRef(null);
-    useEffect(() => {
-      if (!selected || !ref.current || ref.current.clientWidth > 760) return;
-      const heading = ref.current.querySelector('.w-detail h2');
-      if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
+    const ref = useSafeRef(null);
+    useSafeEffect(() => {
+      if (!selected || !ref.current || !(ref.current.clientWidth <= 760)) return;
+      const heading = ref.current.querySelector?.('.dsh-wb-detail h2');
+      if (heading) {
+        heading.tabIndex = -1;
+        heading.focus?.({ preventScroll: true });
+      }
     }, [selected]);
-    return h('div', { ref, className: cx('w-split', className), 'data-selected': selected ? 'true' : 'false', style: { '--w-list-width': listWidth + 'px' } },
-      h('div', { className: 'w-master' }, list),
-      h('div', { className: 'w-detail' }, selected ? h(Button, { className: 'w-back', icon: 'left', variant: 'ghost', onClick: onBack }, backLabel) : null, detail));
+    return h(
+      'div',
+      {
+        ref,
+        className: cx('dsh-wb-split', className),
+        'data-selected': selected ? 'true' : 'false',
+        style: { '--dsh-list-width': listWidth + 'px' },
+      },
+      h('div', { className: 'dsh-wb-master' }, list),
+      h(
+        'div',
+        { className: 'dsh-wb-detail' },
+        selected
+          ? h(
+              Button,
+              { className: 'dsh-wb-back', icon: 'left', variant: 'ghost', onClick: onBack },
+              backLabel,
+            )
+          : null,
+        detail,
+      ),
+    );
   }
-  function Row({ title, meta, description, active, onClick, children, status, className, disabled }) {
-    return h('div', { className: cx('w-row', active && 'w-selected', className) },
-      children ? h('div', { className: 'w-row-select' }, children) : null,
-      h('button', { type: 'button', className: 'w-row-button', onClick, disabled, 'aria-pressed': !!active },
-        h('span', { className: 'w-row-head' }, h('strong', null, title), status ? h('span', { className: 'w-tag' }, status) : null),
-        meta ? h('span', { className: 'w-row-meta' }, meta) : null,
-        description ? h('span', { className: 'w-row-description' }, description) : null));
+
+  function Row({ title, meta, description, active, onClick, children, status, statusTone, className, disabled }) {
+    return h(
+      'div',
+      {
+        className: cx('dsh-wb-row', 'dsh-row', active && 'is-selected', className),
+        'data-dsh-row': '',
+        'data-selected': active ? 'true' : 'false',
+      },
+      children ? h('div', { className: 'dsh-wb-row-select' }, children) : null,
+      h(
+        'button',
+        {
+          type: 'button',
+          className: 'dsh-wb-row-btn',
+          onClick,
+          disabled,
+          'aria-pressed': Boolean(active),
+        },
+        h(
+          'span',
+          { className: 'dsh-wb-row-head' },
+          h('strong', null, title),
+          status ? h('span', { className: 'dsh-wb-tag', 'data-tone': statusTone }, status) : null,
+        ),
+        meta ? h('span', { className: 'dsh-wb-row-meta' }, meta) : null,
+        description ? h('span', { className: 'dsh-wb-row-desc' }, description) : null,
+      ),
+    );
   }
-  function Search({ label, value, onChange, ...props }) {
-    const id = useId();
-    return h('div', { className: 'w-search' }, h(Icon, { name: 'search', size: 18 }), h('input', { type: 'search', id, 'aria-label': label, placeholder: label, value, onChange, ...props }));
+
+  function Details({ summary, children, open, className }) {
+    return h(
+      'details',
+      { className: cx('dsh-wb-details', className), open },
+      h(
+        'summary',
+        { className: 'dsh-wb-summary' },
+        h('span', null, summary),
+        h(Icon, { name: 'down', size: 14 }),
+      ),
+      h('div', { className: 'dsh-wb-details-body' }, children),
+    );
   }
-  function Switch({ label, checked, onChange, disabled }) {
-    return h('label', { className: 'w-switch-label' }, h('span', null, label), h('input', { type: 'checkbox', role: 'switch', checked, disabled, onChange, 'aria-label': label }), h('span', { className: 'w-switch-track', 'aria-hidden': true }));
+
+  function Dialog({ title, children, onClose, closeLabel = 'Close', className, busy = false, footer, tone, wide = false }) {
+    const [style] = useDshStyle(React);
+    const titleId = useSafeId('dsh-wb-dialog-title');
+    const P = primitives();
+    const close = () => {
+      if (!busy) onClose?.();
+    };
+    return h(
+      P.Modal,
+      {
+        open: true,
+        headless: true,
+        dshStyle: style,
+        title,
+        closeLabel,
+        onClose: close,
+        backdropBlur: false,
+        className: cx('dsh-wb-dialog', wide && 'dsh-wb-dialog-wide', className),
+      },
+      h(Styles, { key: 'dsh-wb-dialog-styles' }),
+      h(
+        'div',
+        {
+          ref: createOverlaySyncRef(style),
+          className: 'dsh-wb-dialog-frame',
+          'data-dsh-style': style,
+          'data-window-drag-exclude': '',
+        },
+        h(
+          'header',
+          { className: 'dsh-wb-dialog-header' },
+          h('h2', { id: titleId, 'data-tone': tone, 'data-dsh-editorial-heading': '' }, title),
+          h(IconButton, { icon: 'close', label: closeLabel, disabled: busy, onClick: close }),
+        ),
+        h('div', { className: 'dsh-wb-dialog-body', 'aria-busy': busy ? 'true' : undefined }, children),
+        footer ? h('footer', { className: 'dsh-wb-dialog-footer' }, footer) : null,
+      ),
+    );
   }
-  function Dialog({ title, children, onClose, closeLabel, className, busy = false }) {
-    const id = useId(), panel = useRef(null);
-    useEffect(() => {
-      const previous = document.activeElement;
-      panel.current?.querySelector('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]')?.focus();
-      return () => { if (previous?.isConnected) previous.focus({ preventScroll: true }); };
-    }, []);
-    function keydown(event) {
-      if (event.key === 'Escape' && !event.isComposing) { event.preventDefault(); event.stopPropagation(); if (!busy) onClose(); return; }
-      if (event.key !== 'Tab') return;
-      const controls = [...panel.current.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]')].filter(node => node.getClientRects().length);
-      const first = controls[0], last = controls.at(-1);
-      if (!controls.length) { event.preventDefault(); panel.current.focus(); }
-      else if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
-    }
-    return h('div', { className: 'dshw w-overlay', onClick: event => { if (!busy && event.target === event.currentTarget) onClose(); } },
-      h(Styles, { key: 'styles' }),
-      h('section', { ref: panel, className: cx('w-dialog', className), role: 'dialog', 'aria-modal': true, 'aria-labelledby': id, tabIndex: -1, onKeyDown: keydown },
-        h('header', { className: 'w-dialog-header' }, h('h2', { id }, title), h(IconButton, { icon: 'close', label: closeLabel, disabled: busy, onClick: onClose })), h('div', { className: 'w-dialog-body' }, children)));
-  }
+
   function register(ctx, { id, label, icon, component, inject, order = 50 }) {
-    // The two slots are optional. Existing settings and manual tools still load
-    // in hosts without a workbench, while RC.3 owns navigation/pinning itself.
-    ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: id, inject: () => ({ ...(inject?.() || {}), workbench: true }) }, component));
-    ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id, order, label }, function WorkbenchIcon({ size }) { return h(Icon, { name: icon, size }); }));
+    ctx.slots.inject('main', () =>
+      ctx.slots.register(
+        { name: 'main', key: id, inject: () => ({ ...(inject?.() || {}), workbench: true }) },
+        component,
+      ),
+    );
+    ctx.slots.inject('sidebar.panellist', () =>
+      ctx.slots.register({ name: 'sidebar.panellist', id, order, label }, function WorkbenchIcon({ size }) {
+        return h(Icon, { name: icon, size });
+      }),
+    );
   }
-  const styles = `
-.dshw{--w-bg:var(--dsw-alias-bg-layer-1,#fff);--w-soft:var(--dsw-alias-bg-layer-2,#f7f8fa);--w-text:var(--dsw-alias-label-primary,#18202c);--w-muted:var(--dsw-alias-label-secondary,#667085);--w-border:var(--dsw-alias-border-l3,#e7e9ef);--w-accent:var(--dsh-plugin-workbench-accent,#4f6bdb);--w-selected:color-mix(in srgb,var(--w-accent) 10%,var(--w-bg));--w-primary:var(--w-text);--w-on-primary:var(--w-bg);container-type:inline-size;container-name:dsh-workbench;color:var(--w-text);font:14px/1.65 var(--dsh-font-family-content,system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif);min-width:0;max-width:100%;box-sizing:border-box;text-align:start;color-scheme:inherit}
-.dshw *,.dshw *:before,.dshw *:after{box-sizing:border-box}.dshw h1,.dshw h2,.dshw h3,.dshw h4,.dshw p{margin:0}.dshw h1{font-size:30px;line-height:1.25;letter-spacing:-.025em;font-weight:650}.dshw h2{font-size:24px;line-height:1.35;font-weight:650;letter-spacing:-.015em;overflow-wrap:anywhere}.dshw h3,.dshw h4{font-size:16px;line-height:1.4;font-weight:600}.dshw a{color:var(--w-accent);text-underline-offset:3px;overflow-wrap:anywhere}.dshw button,.dshw input,.dshw select,.dshw textarea{font:inherit;color:inherit;max-width:100%}.dshw input:not([type=checkbox]):not([type=radio]):not([type=file]),.dshw select,.dshw textarea{background:var(--dsw-specific-input-major,var(--w-bg));border:1px solid var(--w-border);border-radius:8px;padding:8px 11px;min-width:0;line-height:1.5}.dshw input:not([type=checkbox]):not([type=radio]):not([type=file]),.dshw select{min-height:38px}.dshw textarea{resize:vertical}.dshw input[type=checkbox],.dshw input[type=radio]{width:16px;height:16px;flex-shrink:0;accent-color:var(--w-accent)}.dshw :focus-visible{outline:2px solid var(--w-accent);outline-offset:3px}.dshw button:disabled,.dshw input:disabled,.dshw select:disabled,.dshw textarea:disabled{opacity:.5;cursor:not-allowed}.dshw label{font-size:13px}.dshw fieldset{min-width:0;border:1px solid var(--w-border);border-radius:8px}.dshw summary{cursor:pointer;font-weight:550;list-style:none;display:flex;align-items:center;gap:8px}.dshw summary::-webkit-details-marker{display:none}.dshw summary:after{content:'';display:block;margin-inline-start:auto;width:7px;height:7px;border-inline-end:1.75px solid currentColor;border-bottom:1.75px solid currentColor;transform:rotate(45deg);flex-shrink:0}.dshw details[open]>summary:after{transform:rotate(225deg)}.dshw details>summary+*{margin-top:12px}.dshw pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace;max-width:100%;background:var(--w-soft);border-radius:6px;padding:14px}.dshw img,.dshw video,.dshw iframe{max-width:100%}
-.w-page{display:flex;flex-direction:column;position:relative;padding:0;min-height:540px;gap:0}.w-page[data-main=true]{height:100%;min-height:0;padding:calc(24px + var(--dsh-frame-top-clearance,0px)) 28px 0 max(28px,var(--dsh-frame-leading-clearance,0px));overflow:auto}.dshw[data-main=true]{background:var(--w-bg)}.dshw.w-page,.dshw .w-body,.dshw .w-tab-panel{overflow-x:clip}.w-page-header{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;padding-bottom:22px;flex-shrink:0}.w-heading{min-width:0}.w-subtitle{margin-top:8px!important;font-size:14px;color:var(--w-muted);line-height:1.6}.w-header-actions,.w-toolbar,.w-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-width:0}.w-header-actions{justify-content:flex-end}.w-body,.w-tabs-layout{display:flex;flex-direction:column;flex:1;min-height:0;min-width:0}.w-body{overflow:auto}.w-tab-panel{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;overflow:auto}.w-tabs{display:flex;align-items:stretch;gap:20px;border-bottom:1px solid var(--w-border);flex-shrink:0;overflow-x:auto;scrollbar-width:thin}.dshw .w-tabs>button{border:0;border-bottom:2px solid transparent;background:transparent;padding:11px 8px 13px;white-space:nowrap;font-size:14px;font-weight:550;cursor:pointer;color:var(--w-muted);display:flex;align-items:center;gap:7px}.dshw .w-tabs>button[aria-selected=true]{border-bottom-color:var(--w-accent);color:var(--w-accent)}.w-count,.w-tag{font-size:12px;line-height:1.5;display:inline-flex;align-items:center;flex-shrink:0;background:var(--w-soft);border-radius:5px;padding:1px 6px;color:var(--w-muted)}.w-tabs [aria-selected=true] .w-count,.w-selected .w-tag{color:var(--w-accent);background:var(--w-selected)}
-.dshw .w-button{display:inline-flex;justify-content:center;align-items:center;gap:7px;background:var(--w-bg);border:1px solid var(--w-border);border-radius:8px;padding:8px 12px;min-height:36px;line-height:1.4;font-size:14px;font-weight:500;cursor:pointer;text-decoration:none;white-space:normal}.dshw .w-button:not(:disabled):hover{background:var(--w-soft)}.dshw .w-primary{background:var(--w-primary);border-color:var(--w-primary);color:var(--w-on-primary)}.dshw .w-primary:not(:disabled):hover{background:var(--w-primary);opacity:.9}.dshw .w-ghost{background:transparent;border-color:transparent}.dshw .w-danger{color:var(--dsw-alias-state-error-primary,#b43c3c)}.dshw .w-icon-button{width:36px;min-width:36px;padding:8px}.dshw .w-button svg{flex-shrink:0}.w-muted{color:var(--w-muted);font-size:12px;line-height:1.6}.w-section{padding:24px 0;border-bottom:1px solid var(--w-border);min-width:0}.w-section>h3{margin-bottom:12px}.w-section>p+p{margin-top:8px}.w-fields{display:grid;gap:16px;min-width:0}.w-field{display:grid;gap:6px;min-width:0}.w-field>input,.w-field>select,.w-field>textarea{width:100%}.w-status{display:flex;align-items:flex-start;gap:8px;padding:11px 13px;margin:12px 0;border:1px solid var(--w-border);border-radius:8px;background:var(--w-soft);font-size:13px;overflow-wrap:anywhere;flex-shrink:0}.w-status>svg{flex-shrink:0;margin-top:2px}.w-status-error{color:var(--dsw-alias-state-error-primary,#ad3636)}.w-status-success{color:var(--dsw-alias-state-success-primary,#24794a)}.w-status-warn{color:var(--dsw-alias-state-warning-primary,#8a5a00)}.w-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;width:100%;max-width:580px;padding:48px 24px;margin:auto;min-height:280px;overflow-wrap:anywhere}.w-empty>svg{color:var(--w-muted)}.w-empty h2{font-size:20px}.w-empty .w-muted{font-size:14px}.w-empty .w-toolbar{justify-content:center}
-.w-split{display:grid;grid-template-columns:minmax(240px,var(--w-list-width)) minmax(0,1fr);min-height:460px;flex:1;min-width:0}.w-master{min-width:0;border-inline-end:1px solid var(--w-border);overflow:auto;padding-bottom:24px}.w-detail{min-width:0;padding:26px 28px;overflow:auto;overflow-wrap:anywhere;display:flex;flex-direction:column}.w-master-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:20px 16px}.w-search{display:flex;align-items:center;gap:8px;border:1px solid var(--w-border);border-radius:8px;padding:0 10px;min-width:0;flex:1;background:var(--w-bg)}.w-search>svg{color:var(--w-muted);flex-shrink:0}.dshw .w-search>input{border:0!important;background:transparent!important;padding:8px 0!important;width:100%;outline-offset:0}.w-row{display:flex;gap:0;min-width:0;position:relative;border-bottom:1px solid var(--w-border);border-inline-start:3px solid transparent}.w-row-select{display:flex;align-items:flex-start;padding:21px 0 0 14px}.dshw .w-row-button{display:flex;flex-direction:column;align-items:stretch;gap:7px;text-align:start;width:100%;padding:18px 18px 18px 16px;border:0;background:transparent;color:inherit;min-width:0;cursor:pointer;line-height:1.5}.dshw .w-row-button:hover{background:var(--w-soft)}.w-row-head{display:flex;align-items:flex-start;gap:10px;justify-content:space-between;min-width:0}.w-row-head>strong{font-size:14px;line-height:1.5;font-weight:600;overflow-wrap:anywhere}.w-row-meta,.w-row-description{color:var(--w-muted);font-size:12px;line-height:1.6;overflow-wrap:anywhere}.w-row-description{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.w-selected{background:var(--w-selected);border-inline-start-color:var(--w-accent)}.w-back{display:none!important}.w-detail-title{margin-bottom:12px!important}.w-detail-meta{color:var(--w-muted);font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}.w-detail-footer{padding:24px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:auto;border-top:1px solid var(--w-border)}.w-detail-footer .w-muted{flex:1;min-width:160px}.w-definition{display:grid;grid-template-columns:minmax(80px,120px) minmax(0,1fr);gap:8px 16px;font-size:14px;margin:20px 0}.w-definition dt{color:var(--w-muted)}.w-definition dd{margin:0;min-width:0;overflow-wrap:anywhere}
-.w-switch-label{display:inline-flex;align-items:center;gap:8px;font-size:13px;position:relative;cursor:pointer}.w-switch-label>input{position:absolute;opacity:0;inset-inline-end:0;width:36px!important;height:22px!important;margin:0;cursor:pointer}.w-switch-track{width:36px;height:22px;border-radius:12px;display:block;background:var(--w-border);border:1px solid var(--w-border);pointer-events:none;padding:2px;transition:background .15s}.w-switch-track:before{content:'';display:block;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px #0002;transition:transform .15s}.w-switch-label>input:checked+.w-switch-track{background:var(--w-accent);border-color:var(--w-accent)}.w-switch-label>input:checked+.w-switch-track:before{transform:translateX(14px)}.w-switch-label>input:focus-visible+.w-switch-track{outline:2px solid var(--w-accent);outline-offset:3px}.w-switch-label:has(>input:disabled){opacity:.5;cursor:not-allowed}
-.w-overlay{position:fixed;inset:0;background:#0005;display:flex;justify-content:flex-end;z-index:1000;padding:12px;overflow:auto}.w-dialog{width:min(620px,100%);max-height:100%;display:flex;flex-direction:column;min-height:0;background:var(--w-bg);color:var(--w-text);border:1px solid var(--w-border);border-radius:12px;box-shadow:0 18px 70px #0003}.w-dialog-header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 24px;border-bottom:1px solid var(--w-border);flex-shrink:0}.w-dialog-header>h2{font-size:20px}.w-dialog-body{overflow:auto;padding:20px 24px;min-height:0}.w-editor-grid{display:grid;grid-template-columns:210px minmax(0,1fr) 300px;min-height:500px;flex:1}.w-editor-list{padding:20px 12px;border-inline-end:1px solid var(--w-border);min-width:0}.w-editor-canvas{background:var(--w-soft);padding:20px;min-width:0;display:flex;flex-direction:column;gap:14px}.w-editor-inspector{padding:24px;border-inline-start:1px solid var(--w-border);min-width:0;overflow:auto}.w-editor-inspector h3{margin-bottom:18px}.w-preview-empty{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:12px;aspect-ratio:16/9;min-height:180px;background:var(--w-soft);border:1px solid var(--w-border);border-radius:8px;padding:24px;color:var(--w-muted)}.w-content-pad{padding:24px 0}.w-stack{display:flex;flex-direction:column;gap:16px;min-width:0}.w-scroll-x{overflow:auto;max-width:100%}
-@container dsh-workbench (max-width:1000px){.w-editor-grid{grid-template-columns:160px minmax(0,1fr)}.w-editor-inspector{grid-column:1/-1;border-inline-start:0;border-top:1px solid var(--w-border)}.w-header-actions{max-width:60%}.w-split{grid-template-columns:minmax(240px,32%) minmax(0,1fr)}}
-@container dsh-workbench (max-width:760px){.w-page-header{gap:14px;flex-wrap:wrap;padding-bottom:18px}.w-heading{flex:1;min-width:170px}.dshw h1{font-size:24px}.w-header-actions{max-width:100%;justify-content:flex-start}.w-subtitle{font-size:13px}.w-tabs{gap:12px}.dshw .w-tabs>button{padding:10px 4px 12px}.w-split{display:block;min-height:360px}.w-split[data-selected=false]>.w-detail{display:none}.w-split[data-selected=true]>.w-master{display:none}.w-master{border-inline-end:0}.w-detail{padding:20px 0}.w-back{display:inline-flex!important;align-self:flex-start;margin:0 0 16px!important}.w-detail h2{font-size:22px}.w-master-toolbar{padding:16px 0}.dshw .w-row-button{padding:16px 10px}.w-detail-footer{position:static}.w-detail-footer .w-muted{flex-basis:100%}.w-editor-grid{display:flex;flex-direction:column}.w-editor-list{border-inline-end:0;border-bottom:1px solid var(--w-border);padding:16px 0}.w-editor-canvas{padding:16px 0;background:var(--w-bg)}.w-editor-inspector{padding:20px 0}.w-dialog-header,.w-dialog-body{padding:16px}.w-button{min-height:40px}.w-definition{grid-template-columns:80px minmax(0,1fr)}}
-@media(max-width:700px){.w-page[data-main=true]{padding:calc(16px + var(--dsh-frame-top-clearance,0px)) 16px 0 max(16px,var(--dsh-frame-leading-clearance,0px))}.w-overlay{padding:8px}.w-dialog{width:100%}}
-@media(prefers-reduced-motion:reduce){.dshw *,.dshw *:before{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+  const WORKBENCH_V2_CSS = `
+.dsh-wb-page,
+.dsh-wb-dialog-frame {
+  --w-bg-base: var(--dsw-alias-bg-base, #ffffff);
+  --w-bg-1: var(--dsw-alias-bg-layer-1, #f8fafc);
+  --w-bg-2: var(--dsw-alias-bg-layer-2, #f1f5f9);
+  --w-border: var(--dsw-alias-border-l2, #e2e8f0);
+  --w-border-strong: var(--dsw-alias-border-l3, #cbd5e1);
+  --w-ink: var(--dsw-alias-label-primary, #1e293b);
+  --w-muted: var(--dsw-alias-label-secondary, #526075);
+  --w-tertiary: var(--dsw-alias-label-tertiary, #64748b);
+  --w-accent: var(--dsw-alias-state-business-primary, #4176e6);
+  --dsh-plugin-workbench-accent: var(--w-accent);
+  --w-accent-soft: var(--dsw-alias-interactive-bg-hover-accent, rgba(65, 118, 230, 0.10));
+  --w-hover: var(--dsw-alias-interactive-bg-hover, rgba(15, 23, 42, 0.045));
+  --w-active: var(--dsw-alias-interactive-bg-active, rgba(65, 118, 230, 0.11));
+  --w-primary-fill: var(--dsw-alias-button-primary-fill, #3b6fe0);
+  --w-primary-hover: var(--dsw-alias-button-primary-hover, #2f5fc8);
+  --w-primary-ink: var(--dsw-alias-button-primary-ink, #ffffff);
+  --w-danger: var(--dsw-alias-state-error-primary, #c6392f);
+  --w-danger-soft: var(--dsw-alias-interactive-bg-hover-danger, rgba(198, 57, 47, 0.10));
+  --w-warn: var(--dsw-alias-state-warn-primary, #b45309);
+  --w-warn-label: var(--dsw-alias-state-warn-label, #92400e);
+  --w-warn-soft: var(--dsw-alias-state-warn-tertiary, #fef3c7);
+  --w-success: var(--dsw-alias-state-success-primary, #1f7a53);
+  --w-link: var(--dsw-alias-link, #2f63d4);
+  --w-radius-xs: var(--dsw-radius-xs, 6px);
+  --w-radius-sm: var(--dsw-radius-sm, 8px);
+  --w-radius-md: var(--dsw-radius-md, 12px);
+  box-sizing: border-box;
+  color: var(--w-ink);
+  font-family: var(--dsh-font-family-content, system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif);
+  font-size: 13px;
+  line-height: 20px;
+  text-align: start;
+}
+
+.dsh-wb-page *,
+.dsh-wb-page *::before,
+.dsh-wb-page *::after,
+.dsh-wb-dialog-frame *,
+.dsh-wb-dialog-frame *::before,
+.dsh-wb-dialog-frame *::after {
+  box-sizing: border-box;
+}
+
+.dsh-wb-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  padding-block-start: var(--dsh-frame-top-clearance, 0px);
+  padding-inline-start: var(--dsh-frame-leading-clearance, 0px);
+  background: var(--w-bg-base);
+  container-type: inline-size;
+  container-name: dsh-workbench;
+}
+
+.dsh-wb-embedded {
+  height: min(740px, 82dvh);
+  padding: 0;
+  border: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
+  border-radius: var(--w-radius-md);
+  overflow: clip;
+}
+
+.dsh-wb-header {
+  display: flex;
+  flex: none;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 18px;
+  border-block-end: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
+  background: var(--w-bg-base);
+}
+
+.dsh-wb-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dsh-wb-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 650;
+  color: var(--w-ink);
+}
+
+.dsh-wb-subtitle {
+  margin: 0;
+  padding-inline-start: 35px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--w-muted);
+}
+
+.dsh-wb-brand,
+.dsh-wb-empty-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--w-accent);
+  background: var(--w-accent-soft);
+  border-radius: var(--w-radius-sm);
+}
+
+.dsh-wb-brand {
+  width: 26px;
+  height: 26px;
+}
+
+.dsh-wb-header-actions,
+.dsh-wb-actions,
+.dsh-wb-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dsh-wb-header-actions {
+  margin-inline-start: auto;
+  justify-content: flex-end;
+  flex: none;
+}
+
+.dsh-wb-subbar {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 18px;
+  background: var(--w-bg-1);
+  border-block-end: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
+}
+
+.dsh-wb-body,
+.dsh-wb-tabs-layout,
+.dsh-wb-tab-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.dsh-wb-body {
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.dsh-wb-body > [data-plugin-update-footer],
+.dsh-wb-tab-panel > [data-plugin-update-footer] {
+  box-sizing: border-box;
+  width: min(100%, 960px);
+  margin: auto auto 0;
+  padding: 14px 20px 22px;
+  border-block-start: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
+}
+
+.dsh-wb-body[data-show-updates="false"] [data-plugin-update-footer] {
+  display: none;
+}
+
+.dsh-wb-tabs {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 6px 18px 0;
+  border-block-end: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
+  background: var(--w-bg-base);
+}
+
+.dsh-wb-tab.dsh-wb-tab {
+  flex: none;
+  min-height: 34px;
+  padding: 6px 12px 8px;
+  border: 0;
+  border-radius: var(--w-radius-xs) var(--w-radius-xs) 0 0;
+  background: transparent;
+  color: var(--w-muted);
+  font-weight: 550;
+  white-space: nowrap;
+  box-shadow: none;
+}
+
+.dsh-wb-tab.dsh-wb-tab[aria-selected="true"] {
+  color: var(--w-ink);
+  background: var(--w-hover);
+  font-weight: 650;
+}
+
+.dsh-wb-tab-panel {
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.dsh-wb-count,
+.dsh-wb-tag {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: 1px 7px;
+  border-radius: var(--w-radius-xs);
+  background: var(--w-bg-2);
+  color: var(--w-muted);
+  font-size: 11.5px;
+  line-height: 17px;
+  font-weight: 550;
+}
+
+.dsh-wb-tag[data-tone="error"],
+.dsh-wb-tag[data-tone="critical"],
+.dsh-wb-tag[data-tone="high"] {
+  background: var(--w-danger-soft);
+  color: var(--w-danger);
+}
+
+.dsh-wb-tag[data-tone="warn"],
+.dsh-wb-tag[data-tone="medium"] {
+  background: var(--w-warn-soft);
+  color: var(--w-warn-label);
+}
+
+.dsh-wb-tag[data-tone="success"] {
+  background: var(--w-accent-soft);
+  color: var(--w-success);
+}
+
+/* Buttons (both host primitives().Button and semantic FallbackButton) */
+.dsh-wb-btn.dsh-wb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: auto;
+  min-height: 30px;
+  padding: 4px 11px;
+  border-radius: var(--w-radius-sm);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 550;
+  cursor: pointer;
+  text-align: center;
+  white-space: normal;
+  text-decoration: none;
+}
+
+.dsh-wb-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dsh-wb-btn-outline.dsh-wb-btn-outline {
+  background: var(--w-bg-base);
+  color: var(--w-ink);
+  border: var(--dsh-control-border-width, 0.5px) solid var(--w-border-strong);
+  box-shadow: var(--dsh-button-shadow, none);
+}
+
+.dsh-wb-btn-ghost.dsh-wb-btn-ghost {
+  background: transparent;
+  color: var(--w-muted);
+  border: var(--dsh-control-border-width, 0.5px) solid transparent;
+}
+
+.dsh-wb-btn-primary.dsh-wb-btn-primary {
+  background: var(--w-primary-fill);
+  color: var(--w-primary-ink);
+  border: var(--dsh-control-border-width, 0.5px) solid var(--w-primary-fill);
+  box-shadow: var(--dsh-button-shadow, none);
+}
+
+.dsh-wb-btn-danger.dsh-wb-btn-danger {
+  background: var(--w-bg-base);
+  color: var(--w-danger);
+  border: var(--dsh-control-border-width, 0.5px) solid color-mix(in oklab, var(--w-danger) 32%, var(--w-border));
+}
+
+.dsh-wb-icon-btn.dsh-wb-icon-btn {
+  flex: none;
+  width: 30px;
+  min-width: 30px;
+  padding-inline: 0;
+}
+
+.dsh-fallback-btn-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+}
+
+@media (hover: hover) {
+  .dsh-wb-btn-outline:hover:not(:disabled) {
+    background: var(--w-hover);
+    border-color: var(--w-accent);
+  }
+  .dsh-wb-btn-ghost:hover:not(:disabled) {
+    background: var(--w-hover);
+    color: var(--w-ink);
+  }
+  .dsh-wb-btn-primary:hover:not(:disabled) {
+    background: var(--w-primary-hover);
+    border-color: var(--w-primary-hover);
+  }
+  .dsh-wb-btn-danger:hover:not(:disabled) {
+    background: var(--w-danger-soft);
+    border-color: var(--w-danger);
+  }
+}
+
+/* Inputs, Textareas, Checkboxes & Choice Menus */
+.dsh-wb-input.dsh-wb-input,
+.dsh-fallback-input-wrap.dsh-wb-input {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  width: 100%;
+  min-height: 32px;
+  padding: 3px 10px;
+  border: var(--dsh-control-border-width, 0.5px) solid var(--w-border-strong);
+  border-radius: var(--w-radius-sm);
+  background: var(--w-bg-base);
+  color: var(--w-ink);
+  box-shadow: none;
+}
+
+.dsh-fallback-input-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  color: var(--w-tertiary);
+}
+
+.dsh-wb-input > input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  padding: 2px 0;
+}
+
+.dsh-wb-input:focus-within,
+.dsh-wb-textarea:focus-visible {
+  border-color: var(--w-accent);
+  outline: 2px solid var(--w-accent);
+  outline-offset: 1px;
+}
+
+.dsh-wb-textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 120px;
+  padding: 8px 11px;
+  border: var(--dsh-control-border-width, 0.5px) solid var(--w-border-strong);
+  border-radius: var(--w-radius-sm);
+  background: var(--w-bg-base);
+  color: var(--w-ink);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  resize: vertical;
+}
+
+.dsh-wb-checkbox.dsh-wb-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 2px 0;
+  color: var(--w-ink);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.dsh-wb-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  accent-color: var(--w-accent);
+}
+
+.dsh-wb-checkbox-hidden > span {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.dsh-wb-choice {
+  display: block;
+  min-width: 0;
+}
+
+.dsh-wb-choice > .dsh-style-fallback-wrap,
+.dsh-wb-menu.dsh-wb-menu {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.dsh-wb-menu-btn.dsh-wb-menu-btn {
+  width: 100%;
+  min-height: 32px;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 10px;
+  text-align: start;
+}
+
+.dsh-wb-menu-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsh-wb-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.dsh-wb-search-clear.dsh-wb-search-clear {
+  position: absolute;
+  inset-inline-end: 3px;
+  width: 24px;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+.dsh-wb-search:has(.dsh-wb-search-clear) .dsh-wb-input {
+  padding-inline-end: 28px;
+}
+
+/* Status Banner */
+.dsh-wb-status {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 10px 18px 0;
+  padding: 9px 12px;
+  border-radius: var(--w-radius-sm);
+  border: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
+  background: var(--w-bg-1);
+  color: var(--w-muted);
+  font-size: 12.5px;
+  line-height: 19px;
+}
+
+.dsh-wb-status > svg {
+  flex: none;
+  margin-block-start: 1.5px;
+}
+
+.dsh-wb-status-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dsh-wb-status[data-tone="error"] {
+  background: var(--w-danger-soft);
+  border-color: color-mix(in oklab, var(--w-danger) 28%, var(--w-border));
+  color: var(--w-danger);
+}
+
+.dsh-wb-status[data-tone="warn"] {
+  background: var(--w-warn-soft);
+  color: var(--w-warn-label);
+}
+
+.dsh-wb-status[data-tone="success"] {
+  background: var(--w-accent-soft);
+  color: var(--w-success);
+}
+
+/* Empty State */
+.dsh-wb-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 200px;
+  flex: 1;
+  padding: 28px 18px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.dsh-wb-empty-icon {
+  width: 44px;
+  height: 44px;
+  margin-block-end: 4px;
+}
+
+.dsh-wb-empty > h2 {
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+  color: var(--w-ink);
+}
+
+.dsh-wb-empty-desc {
+  max-width: 44ch;
+  color: var(--w-muted);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+/* Master-Detail Split & Interactive Rows */
+.dsh-wb-split {
+  display: grid;
+  grid-template-columns: minmax(250px, var(--dsh-list-width, 360px)) minmax(0, 1fr);
+  flex: 1;
+  min-height: 440px;
+  min-width: 0;
+}
+
+.dsh-wb-master {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-inline-end: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
+  background: var(--w-bg-base);
+}
+
+.dsh-wb-detail {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  overflow-wrap: anywhere;
+  padding: 20px 24px;
+  background: var(--w-bg-base);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dsh-wb-detail > article {
+    opacity: 1;
+    translate: 0px 0px;
+    transition: opacity var(--dsh-motion-base, 200ms) var(--dsh-ease-out),
+      translate var(--dsh-motion-base, 200ms) var(--dsh-ease-out);
+  }
+  @starting-style {
+    .dsh-wb-detail > article {
+      opacity: 0;
+      translate: 0px 4px;
+    }
+  }
+}
+
+.dsh-wb-master-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-block-end: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
+  background: var(--w-bg-1);
+}
+
+.dsh-wb-row {
+  display: flex;
+  min-width: 0;
+  position: relative;
+  border-block-end: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
+  border-inline-start: 3px solid transparent;
+}
+
+.dsh-wb-row.is-selected {
+  background: var(--w-active);
+  border-inline-start-color: var(--w-accent);
+}
+
+.dsh-wb-row.is-selected .dsh-wb-tag:not([data-tone]) {
+  background: var(--w-accent-soft);
+  color: var(--w-accent);
+}
+
+.dsh-wb-row-select {
+  display: flex;
+  align-items: flex-start;
+  padding: 14px 0 0 12px;
+}
+
+.dsh-wb-row-btn.dsh-wb-row-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+  width: 100%;
+  min-width: 0;
+  padding: 13px 14px;
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.dsh-wb-row-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dsh-wb-row-head > strong {
+  font-size: 13.5px;
+  line-height: 19px;
+  font-weight: 600;
+  color: var(--w-ink);
+  overflow-wrap: anywhere;
+}
+
+.dsh-wb-row-meta,
+.dsh-wb-row-desc {
+  color: var(--w-muted);
+  font-size: 12px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
+.dsh-wb-row-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.dsh-wb-back.dsh-wb-back {
+  display: none;
+  align-self: flex-start;
+  margin-block-end: 12px;
+}
+
+/* Details Disclosure with Animated Chevron */
+.dsh-wb-details {
+  border-block-start: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
+  padding-block: 14px;
+}
+
+.dsh-wb-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--w-ink);
+}
+
+.dsh-wb-summary::-webkit-details-marker {
+  display: none;
+}
+
+.dsh-wb-details-body {
+  padding-block-start: 10px;
+}
+
+/* Portaled / Fallback Modal Dialog */
+.dsh-wb-dialog.dsh-wb-dialog {
+  box-sizing: border-box;
+  width: min(560px, 100%);
+  max-height: 100%;
+  min-height: 0;
+  padding: 0;
+  gap: 0;
+  border: 0;
+  background: var(--w-bg-1);
+  box-shadow: var(--dsw-elevation-prominent);
+}
+
+.dsh-wb-dialog-wide.dsh-wb-dialog-wide {
+  width: min(860px, 100%);
+  max-width: min(860px, calc(100dvw - 32px));
+}
+
+.dsh-wb-dialog-frame {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: calc(100dvh - 40px);
+  background: var(--w-bg-1);
+  color: var(--w-ink);
+}
+
+.dsh-wb-dialog-header,
+.dsh-wb-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: none;
+  gap: 8px;
+  padding: 12px 18px;
+  background: var(--w-bg-base);
+}
+
+.dsh-wb-dialog-header {
+  border-block-end: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
+}
+
+.dsh-wb-dialog-header > h2 {
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 650;
+  color: var(--w-ink);
+}
+
+.dsh-wb-dialog-header > h2[data-tone="warn"] {
+  color: var(--w-warn);
+}
+
+.dsh-wb-dialog-body {
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 18px;
+}
+
+.dsh-wb-dialog-footer {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  border-block-start: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
+}
+
+/* Focus Indicators */
+.dsh-wb-page :focus-visible,
+.dsh-wb-dialog-frame :focus-visible {
+  outline: 2px solid var(--w-accent);
+  outline-offset: 2px;
+}
+
+/* Container Queries */
+@container dsh-workbench (max-width: 960px) {
+  .dsh-wb-split {
+    grid-template-columns: minmax(230px, 36%) minmax(0, 1fr);
+  }
+}
+
+@container dsh-workbench (max-width: 760px) {
+  .dsh-wb-header {
+    flex-wrap: wrap;
+    padding: 10px 14px;
+  }
+  .dsh-wb-subtitle {
+    padding-inline-start: 0;
+  }
+  .dsh-wb-header-actions {
+    width: 100%;
+    margin-inline-start: 0;
+    justify-content: flex-start;
+  }
+  .dsh-wb-tabs {
+    padding-inline: 12px;
+  }
+  .dsh-wb-split {
+    display: flex;
+    flex-direction: column;
+    min-height: 360px;
+  }
+  .dsh-wb-split[data-selected="false"] > .dsh-wb-detail {
+    display: none;
+  }
+  .dsh-wb-split[data-selected="true"] > .dsh-wb-master {
+    display: none;
+  }
+  .dsh-wb-master {
+    border-inline-end: 0;
+  }
+  .dsh-wb-detail {
+    padding: 16px 14px;
+  }
+  .dsh-wb-back.dsh-wb-back {
+    display: inline-flex;
+  }
+}
 `;
-  function Styles() { return h('style', null, styles); }
-  return { Icon, Button, IconButton, Page, Tabs, Status, Empty, Split, Row, Search, Switch, Dialog, Styles, register, styles };
+
+  const styles = DSH_THEMES_AND_MOTION_CSS + '\n' + WORKBENCH_V2_CSS;
+
+  function ensureStylesInHead() {
+    if (typeof document === 'undefined' || !document.head || typeof document.querySelector !== 'function') {
+      return false;
+    }
+    const id = 'dsh-workbench-ui-v2';
+    if (!document.querySelector('style[data-plugin-css="' + id + '"]')) {
+      const styleEl = document.createElement('style');
+      styleEl.setAttribute('data-plugin-css', id);
+      styleEl.textContent = styles;
+      document.head.appendChild(styleEl);
+    }
+    return true;
+  }
+
+  function Styles() {
+    useSafeEffect(() => {
+      ensureStylesInHead();
+    }, []);
+    if (ensureStylesInHead()) return null;
+    return h('style', { 'data-plugin-css': 'dsh-workbench-ui-v2' }, styles);
+  }
+
+  return {
+    Icon,
+    Button,
+    IconButton,
+    Input,
+    Checkbox,
+    Switch,
+    ChoiceMenu,
+    Search,
+    Page,
+    Tabs,
+    Status,
+    Empty,
+    Split,
+    Row,
+    Details,
+    Dialog,
+    StyleSwitcher,
+    Styles,
+    register,
+    primitives,
+    styles,
+    DSH_STYLES,
+    useDshStyle,
+    readDshStyle,
+    writeDshStyle,
+    subscribeDshStyle,
+    createOverlaySyncRef,
+  };
 }
