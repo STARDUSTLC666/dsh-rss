@@ -4,6 +4,8 @@
 
 **自己选来源，把订阅整理成好读的信息流。**
 
+DeepSeek Harness（`>=0.2.2-rc.3`）RSS / Atom 订阅工作台：提供分类推荐目录、先预览后订阅、多源检索与 OPML 预览导入导出，全部来源由用户自主选择。工作台内置 5 套明亮可切换界面风格（原生清透 / 米白纸感 / Claude 暖书卷 / 8-Bit 像素 / 晴空薄荷，深色模式自动柔和适配）与按钮微交互动效，跨插件实时同步。
+
 [![npm](https://img.shields.io/npm/v/dsh-rss)](https://www.npmjs.com/package/dsh-rss) [![downloads](https://raw.githubusercontent.com/STARDUSTLC666/dsh-suite/npm-downloads/assets/dsh-rss-downloads.svg)](https://www.npmjs.com/package/dsh-rss) [![total downloads](https://raw.githubusercontent.com/STARDUSTLC666/dsh-suite/npm-downloads/assets/dsh-rss-total-downloads.svg)](https://www.npmjs.com/package/dsh-rss)
 
 **[安装使用](#安装) · [使用流程](#开始使用) · [完整说明](https://github.com/STARDUSTLC666/dsh-rss/blob/master/docs/REFERENCE.zh.md)**
@@ -17,9 +19,10 @@
 
 ## 功能
 
-- 从五类来源目录开始，也能添加自己的地址。
-- 预览后再订阅；浏览目录不会自动添加来源。
-- 按分类、未读或关键词阅读，并导出 OPML 备份。
+- 从分类来源目录开始，也能添加自己的 RSS / Atom 地址。
+- 预览后再订阅；浏览目录不会自动添加或抓取来源。
+- 适配 DeepSeek Harness `>=0.2.2-rc.3` 的 Workbench UI v2 工作台，支持 5 套主题（原生清透 / 米白纸感 / Claude 暖书卷 / 8-Bit 像素 / 晴空薄荷）与微交互动效。
+- 按分类、未读或关键词阅读检索，并支持 OPML 预览导入与导出备份。
 
 ## 安装
 

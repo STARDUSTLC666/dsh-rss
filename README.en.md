@@ -4,6 +4,8 @@
 
 **Choose your sources and build a readable feed.**
 
+RSS / Atom workbench for DeepSeek Harness (`>=0.2.2-rc.3`): browse categorized publisher directories, preview before subscribing, search across feeds, and import/export OPML under user control. Features Workbench UI v2 with 5 synced light/warm themes (Native Airy / Warm Cream / Claude Warmth / Bright 8-Bit / Airy Mint), soft-slate dark adaptation, and tactile micro-animations.
+
 [![npm](https://img.shields.io/npm/v/dsh-rss)](https://www.npmjs.com/package/dsh-rss) [![downloads](https://raw.githubusercontent.com/STARDUSTLC666/dsh-suite/npm-downloads/assets/dsh-rss-downloads.svg)](https://www.npmjs.com/package/dsh-rss) [![total downloads](https://raw.githubusercontent.com/STARDUSTLC666/dsh-suite/npm-downloads/assets/dsh-rss-total-downloads.svg)](https://www.npmjs.com/package/dsh-rss)
 
 **[Install](#install) · [Workflow](#start-using-it) · [Full guide](https://github.com/STARDUSTLC666/dsh-rss/blob/master/docs/REFERENCE.en.md)**
@@ -17,9 +19,10 @@
 
 ## Features
 
-- Start with five source categories or your own feed URLs.
-- Preview before subscribing; browsing does not subscribe automatically.
-- Read by category, unread state or keyword and back up OPML.
+- Start with categorized publisher directories or add your own RSS / Atom URLs.
+- Preview before subscribing; browsing the catalog never subscribes automatically.
+- DeepSeek Harness `>=0.2.2-rc.3` Workbench UI v2 with 5 synced themes (Native Airy, Warm Cream, Claude Warmth, Bright 8-Bit, Airy Mint), tactile micro-animations, and reduced-motion support.
+- Filter and search by category, unread state, or keywords, and preview-import or export OPML backups.
 
 ## Install
 
