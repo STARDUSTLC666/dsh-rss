@@ -1,5 +1,10 @@
 # 更新记录
 
+## 0.10.1 (2026-11-18)
+
+- 同步 `@stardustlc/dsh-updates` 0.2.1：恢复 Suite 整包统一更新（移除独立拆包迁移），保留整包与独立插件的原地热更新与失败自动回滚。
+- Sync `@stardustlc/dsh-updates` 0.2.1: restore unified Suite bundle updates (removing standalone conversion) while retaining in-place hot reload and automatic rollback.
+
 ## 0.10.0 (2026-11-18)
 
 - 升级至 Workbench UI v2 并深度适配 DeepSeek Harness `>=0.2.2-rc.3`：按需接入宿主组件（`Button`、`Input`、`Checkbox`、`Menu`、`Modal`）并保留独立测试回退，遵循窗口顶部与侧栏留白变量及弹层拖拽排除区域，支持 Cordis 4 `ctx.effect` 热重载卸载清理。
