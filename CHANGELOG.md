@@ -1,5 +1,10 @@
 # 更新记录
 
+## 0.10.4 (2026-11-18)
+
+- 同步 `@stardustlc/dsh-updates` 0.2.3：侧边栏工作台平时默认隐藏底部更新栏（零高度占用），仅在检测到兼容新版本或执行更新时浮现单行精简提示条；完整更新设置与检查入口统一保留在 DSH「插件」详情页底部。
+- Sync `@stardustlc/dsh-updates` 0.2.3: keep the sidebar workbench update footer hidden by default when up-to-date, surfacing a single-line compact strip only for actionable updates or active jobs while retaining full controls in native Plugin Details.
+
 ## 0.10.3 (2026-11-18)
 
 - 在「我的订阅」与单源详情页新增分类/单源上下文感知的一键复制 AI 简报指令按钮，空状态补齐「推荐订阅源 / 导入 OPML」直达入口，并新增可折叠三步订阅简报使用指引。
