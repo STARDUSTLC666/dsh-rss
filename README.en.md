@@ -45,14 +45,17 @@ For the web profile, replace `desktop` with `web`. Restart that DSH profile afte
 
 ## Start using it
 
-1. Open RSS in the sidebar; browse catalog categories or prepare your own RSS/Atom URL or OPML file.
-2. Preview the sources and explicitly subscribe or import. Browsing the catalog alone does not subscribe.
-3. Refresh subscriptions, filter by category, unread state or keywords, and open the content you need.
-4. Ask for summaries of content actually read when needed; export OPML backups and manage subscriptions you no longer need.
+Use RSS in a smooth **Preview & subscribe → Organize / import OPML → Copy 1-click prompt for AI briefings** loop:
 
-Example request：
+1. **Preview & subscribe**: Open **RSS subscriptions** from the sidebar, preview recent entries in **Recommended feeds** before subscribing, or enter your own publisher RSS / Atom URL (browsing the catalog never subscribes or contacts sites automatically).
+2. **Organize categories & OPML**: Filter by category, edit feed groups, and check feed health in **My feeds**, or preview-import and export OPML backups in **Import and export**.
+3. **Copy 1-click prompt for AI briefings**: Click **Copy daily briefing prompt** in **My feeds** or **Copy 3-takeaway prompt** inside any feed detail, then paste into a DSH chat so the assistant fetches updates and summarizes key insights with source links.
 
-> Summarize these articles I have read, keep source links, and distinguish reported facts from speculation.
+Handy chat prompts (1-click copyable in the workbench):
+
+- `Fetch the latest articles from my subscribed feeds and generate today’s key briefing by category`
+- `Fetch the latest updates from “<Feed Title>” and distill 3 key takeaways`
+- `Summarize these articles I have read, keep source links, and distinguish reported facts from speculation`
 
 ## Before you start
 

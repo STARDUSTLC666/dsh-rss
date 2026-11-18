@@ -175,9 +175,10 @@ window.__ModuleLoader__.load({ id: 'dsh-rss', factory: require => {
                 }
             }
             const fieldIcon = { url: 'link', name: 'edit', category: 'folder' };
-            const field = (key, hint) => h('label', { key, className: 'rss-dialog-field' },
+            const field = (key, hint) => h('label', { key, htmlFor: feedFormId + '-' + key, className: 'rss-dialog-field' },
                 h('span', null, t(key)),
                 h(W.Input, {
+                    id: feedFormId + '-' + key,
                     name: key,
                     icon: fieldIcon[key] || 'file',
                     type: key === 'url' ? 'url' : 'text',
@@ -217,6 +218,12 @@ window.__ModuleLoader__.load({ id: 'dsh-rss', factory: require => {
                 state && !writable ? h(W.Status, { tone: 'warn' }, t('readonly')) : null,
                 !modal ? h(W.Status, { tone: 'error' }, error) : null,
                 h(W.Status, { tone: 'success' }, notice),
+                !loading && state ? h('div', { className: 'rss-guide-wrap' },
+                    h(RssWorkflowGuide, {
+                        defaultOpen: !feeds.length,
+                        setNotice,
+                        onNavigateTab: setActiveTab,
+                    })) : null,
                 h(W.Tabs, {
                     label: rssText('RSS 视图', 'RSS views'),
                     value: activeTab,
@@ -229,7 +236,22 @@ window.__ModuleLoader__.load({ id: 'dsh-rss', factory: require => {
                 },
                     loading ? h(W.Empty, { title: t('loading'), icon: 'rss' })
                     : !state ? h(W.Empty, { title: t('loadError'), icon: 'rss', action: h(W.Button, { icon: 'refresh', disabled: !!busy, onClick: () => run(null) }, t('retry')) })
-                    : activeTab === 'feeds' ? h(RssFeedBrowser, { feeds, filtered, categories, query, setQuery, category, setCategory, writable, busy, run, open })
+                    : activeTab === 'feeds' ? h(RssFeedBrowser, {
+                        feeds,
+                        filtered,
+                        categories,
+                        query,
+                        setQuery,
+                        category,
+                        setCategory,
+                        writable,
+                        busy,
+                        run,
+                        open,
+                        setNotice,
+                        onOpenCatalog: () => setActiveTab('catalog'),
+                        onOpenTransfer: () => setActiveTab('transfer'),
+                    })
                     : activeTab === 'catalog' ? h(RssCatalog, { catalog, sources: sourceOptions, query: catalogQuery, setQuery: setCatalogQuery, category: catalogCategory, setCategory: setCatalogCategory, contentLanguage: catalogLanguage, setContentLanguage: setCatalogLanguage, busy, writable, state, run, previews: sourcePreviews, setPreviews: setSourcePreviews, setNotice })
                     : h('div', { className: 'rss-transfer' },
                         h('div', { className: 'rss-transfer-head' },
@@ -246,12 +268,12 @@ window.__ModuleLoader__.load({ id: 'dsh-rss', factory: require => {
                             },
                         },
                             h('p', { className: 'rss-muted' }, t('importHint')),
-                            h('label', { className: 'rss-transfer-field' },
+                            h('label', { className: 'rss-transfer-field', htmlFor: feedFormId + '-opml-file' },
                                 h('span', null, t('file')),
-                                h('input', { className: 'rss-file-input', type: 'file', accept: '.opml,.xml,text/xml,application/xml,text/x-opml', disabled: !!busy, onChange: chooseFile })),
-                            h('label', { className: 'rss-transfer-field' },
+                                h('input', { id: feedFormId + '-opml-file', className: 'rss-file-input', type: 'file', accept: '.opml,.xml,text/xml,application/xml,text/x-opml', disabled: !!busy, onChange: chooseFile })),
+                            h('label', { className: 'rss-transfer-field', htmlFor: feedFormId + '-opml-text' },
                                 h('span', null, t('opml')),
-                                h('textarea', { className: 'dsh-wb-textarea', required: true, autoFocus: true, value: opml, disabled: !!busy, onChange: event => { setOpml(event.target.value); setPreview(null); } })),
+                                h('textarea', { id: feedFormId + '-opml-text', className: 'dsh-wb-textarea', required: true, autoFocus: true, value: opml, disabled: !!busy, onChange: event => { setOpml(event.target.value); setPreview(null); } })),
                             h(W.Checkbox, {
                                 label: t('update'),
                                 checked: updateExisting,

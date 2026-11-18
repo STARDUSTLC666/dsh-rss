@@ -449,6 +449,123 @@ function createWorkbenchUI(React, require) {
     );
   }
 
+  let lastWbCopyAnnouncement = '';
+
+  function legacyClipboardWrite(text) {
+    try {
+      if (typeof document === 'undefined' || typeof document.createElement !== 'function' || typeof document.execCommand !== 'function' || !document.body?.append) {
+        return false;
+      }
+      const field = Object.assign(document.createElement('textarea'), { value: text });
+      field.setAttribute('readonly', '');
+      field.style.cssText = 'position:fixed;inset-block-start:0;opacity:0';
+      document.body.append(field);
+      field.select?.();
+      try { return Boolean(document.execCommand('copy')); } finally { field.remove?.(); }
+    } catch {
+      return false;
+    }
+  }
+
+  async function writeClipboardText(text) {
+    if (!text) return false;
+    try {
+      if (typeof navigator !== 'undefined' && typeof navigator?.clipboard?.writeText === 'function') {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch {
+      // Fall through to legacy textarea copy when clipboard API rejects.
+    }
+    return legacyClipboardWrite(text);
+  }
+
+  function CopyPrompt({
+    prompt,
+    label,
+    copiedLabel = 'Copied',
+    statusText = 'Copied to clipboard',
+    failedText = 'Copy failed',
+    variant = 'outline',
+    size = 'sm',
+    className,
+    onCopied,
+  }) {
+    const text = typeof prompt === 'string' ? prompt.trim() : '';
+    const [copied, setCopied] = useSafeState(false);
+    const [failed, setFailed] = useSafeState(false);
+    const [announcement, setAnnouncement] = useSafeState('');
+    const timerRef = useSafeRef(null);
+    useSafeEffect(() => () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    }, []);
+    if (!text) return null;
+
+    const isCopied = copied === true;
+    const isFailed = failed === true;
+    const triggerCopy = () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      writeClipboardText(text).then(ok => {
+        setCopied(ok);
+        setFailed(!ok);
+        let msg = ok ? statusText : failedText;
+        if (msg === lastWbCopyAnnouncement) msg += '\u00A0';
+        lastWbCopyAnnouncement = msg;
+        setAnnouncement(msg);
+        if (ok) onCopied?.(text);
+        if (typeof setTimeout === 'function') {
+          const timer = setTimeout(() => {
+            setCopied(false);
+            setFailed(false);
+            setAnnouncement('');
+          }, 2000);
+          timer?.unref?.();
+          timerRef.current = timer;
+        }
+      });
+    };
+
+    return h(
+      'span',
+      { className: cx('dsh-wb-copy-wrap', className) },
+      h(
+        Button,
+        {
+          type: 'button',
+          variant,
+          size,
+          icon: isCopied ? 'check' : 'copy',
+          copied: isCopied,
+          'data-copied': isCopied ? 'true' : undefined,
+          'data-failed': isFailed ? 'true' : undefined,
+          'data-copy-prompt': text,
+          title: text,
+          onClick: triggerCopy,
+        },
+        isCopied ? copiedLabel : (label || text),
+      ),
+      h(
+        'span',
+        {
+          className: 'dsh-wb-copy-status',
+          role: 'status',
+          'data-visible': isCopied || isFailed ? 'true' : undefined,
+        },
+        typeof announcement === 'string' ? announcement : '',
+      ),
+      isFailed ? h('code', { className: 'dsh-wb-copy-fallback', tabIndex: 0 }, text) : null,
+    );
+  }
+
+  function GuideDetails({ summary, children, open = false, className, ...props }) {
+    return h(
+      'details',
+      { ...props, className: cx('dsh-wb-guide', className), open: open || undefined },
+      h('summary', { className: 'dsh-wb-guide-summary' }, summary),
+      h('div', { className: 'dsh-wb-guide-body' }, children),
+    );
+  }
+
   function Dialog({ title, children, onClose, closeLabel = 'Close', className, busy = false, footer, tone, wide = false }) {
     const [style] = useDshStyle(React);
     const titleId = useSafeId('dsh-wb-dialog-title');
@@ -1204,6 +1321,122 @@ function createWorkbenchUI(React, require) {
   padding-block-start: 10px;
 }
 
+/* Compact Collapsible Human Workflow Guide & CopyPrompt */
+.dsh-wb-guide {
+  border: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
+  border-radius: var(--w-radius-md);
+  background: var(--w-bg-1);
+  padding: 9px 14px;
+  text-align: start;
+}
+
+.dsh-wb-guide-summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.55ch;
+  min-block-size: 24px;
+  cursor: pointer;
+  font-size: 12.5px;
+  line-height: 19px;
+  font-weight: 600;
+  color: var(--w-ink);
+  user-select: none;
+}
+
+.dsh-wb-guide-summary::-webkit-details-marker {
+  display: none;
+}
+
+.dsh-wb-guide-summary::before {
+  content: "▸";
+  content: "▸" / "";
+  display: inline-block;
+  flex-shrink: 0;
+  color: var(--w-accent);
+  rotate: 0deg;
+}
+
+.dsh-wb-guide[open] > .dsh-wb-guide-summary::before {
+  rotate: 90deg;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dsh-wb-guide-summary::before {
+    transition: rotate 0.18s ease;
+  }
+}
+
+.dsh-wb-guide-body {
+  display: grid;
+  gap: 10px;
+  margin-block-start: 8px;
+  padding-block-start: 8px;
+  border-block-start: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
+}
+
+.dsh-wb-guide-steps {
+  margin: 0;
+  padding-inline-start: 18px;
+  display: grid;
+  gap: 5px;
+  color: var(--w-muted);
+  font-size: 12.5px;
+  line-height: 19px;
+}
+
+.dsh-wb-guide-actions,
+.dsh-wb-prompt-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+
+.dsh-wb-empty .dsh-wb-prompt-chips {
+  justify-content: center;
+}
+
+.dsh-wb-copy-wrap {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+}
+
+.dsh-wb-copy-status {
+  font-size: 11.5px;
+  line-height: 17px;
+  color: var(--w-muted);
+  opacity: 0;
+  pointer-events: none;
+  max-inline-size: 0;
+  overflow: clip;
+  white-space: nowrap;
+  transition: opacity 0.16s ease;
+}
+
+.dsh-wb-copy-status[data-visible="true"] {
+  opacity: 1;
+  max-inline-size: 280px;
+  padding: 2px 6px;
+  border-radius: var(--w-radius-xs);
+  background: var(--w-bg-2);
+}
+
+.dsh-wb-copy-fallback {
+  display: inline-block;
+  max-width: 100%;
+  padding: 2px 6px;
+  border-radius: var(--w-radius-xs);
+  background: var(--w-bg-2);
+  color: var(--w-ink);
+  font: 11.5px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
 /* Portaled / Fallback Modal Dialog */
 .dsh-wb-dialog.dsh-wb-dialog {
   box-sizing: border-box;
@@ -1365,6 +1598,8 @@ function createWorkbenchUI(React, require) {
     Split,
     Row,
     Details,
+    GuideDetails,
+    CopyPrompt,
     Dialog,
     StyleSwitcher,
     Styles,

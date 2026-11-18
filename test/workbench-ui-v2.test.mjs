@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
 
-function createMockEnv({ withHostPrimitives = false, storageThrows = false, initialStyle = null } = {}) {
+function createMockEnv({ withHostPrimitives = false, storageThrows = false, initialStyle = null, onClipboardWrite = null } = {}) {
   const storage = new Map()
   if (initialStyle) storage.set('dsh-stardust:ui-style', initialStyle)
   const windowListeners = new Map()
@@ -104,6 +104,8 @@ function createMockEnv({ withHostPrimitives = false, storageThrows = false, init
 
   let stateValues = []
   let stateCursor = 0
+  let refValues = []
+  let refCursor = 0
   const effects = []
   const cleanups = []
   const React = {
@@ -137,7 +139,9 @@ function createMockEnv({ withHostPrimitives = false, storageThrows = false, init
       effects.push(fn)
     },
     useRef(initial) {
-      return { current: initial }
+      const idx = refCursor++
+      if (!(idx in refValues)) refValues[idx] = { current: initial }
+      return refValues[idx]
     },
     useId() {
       return 'rss-uid'
@@ -165,13 +169,17 @@ function createMockEnv({ withHostPrimitives = false, storageThrows = false, init
   const rawBundle = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8')
   const instrumented = rawBundle.replace(
     "return { apply, inject: ['slots', 'locale'] };",
-    "return { apply, inject: ['slots', 'locale'], probe: { W, Panel, RssFeedBrowser, RssCatalog, RssArticlePreview } };",
+    "return { apply, inject: ['slots', 'locale'], probe: { W, Panel, RssFeedBrowser, RssWorkflowGuide, RssCatalog, RssArticlePreview } };",
   )
 
   runInNewContext(instrumented, {
     window: mockWindow,
     document: mockDocument,
     CustomEvent: MockCustomEvent,
+    AbortController,
+    setTimeout,
+    clearTimeout,
+    navigator: { clipboard: { async writeText(val) { onClipboardWrite?.(val) } } },
     URL,
     fetch: async () => ({
       ok: true,
@@ -197,10 +205,15 @@ function createMockEnv({ withHostPrimitives = false, storageThrows = false, init
     slots: { inject(_n, fn) { fn() }, register() { return () => {} } },
   })
 
-  function renderTree(renderFn) {
+  function rerenderTree(renderFn) {
     stateCursor = 0
+    refCursor = 0
     effects.length = 0
-    const vnode = renderFn()
+    return expand(renderFn())
+  }
+
+  function renderTree(renderFn) {
+    const vnode = rerenderTree(renderFn)
     while (effects.length) {
       const fn = effects.shift()
       const off = fn()
@@ -251,10 +264,11 @@ function createMockEnv({ withHostPrimitives = false, storageThrows = false, init
     dispatchedEvents,
     makeDomElement,
     renderTree,
+    rerenderTree,
     expand,
     findAll,
     getPrimitivesRequireCount: () => primitivesRequireCount,
-    resetState() { stateValues = []; stateCursor = 0 },
+    resetState() { stateValues = []; stateCursor = 0; refValues = []; refCursor = 0 },
     cleanup() { while (cleanups.length) cleanups.pop()() },
   }
 }
@@ -436,4 +450,92 @@ test('HostMenuWithStyle portal sync & Cordis 4 ctx.effect unload cleanup work cl
   assert.ok(registered.size > 0)
   for (const off of effectCleanups) await off()
   assert.equal(registered.size, 0, 'ctx.effect disposer unregisters all RSS tools on Cordis 4 unload')
+})
+
+test('My feeds & feed detail expose 1-click AI briefing copy prompts, status feedback, collapsible 3-step workflow guide, and explicit label htmlFor', async () => {
+  const copied = []
+  const notices = []
+  const env = createMockEnv({ withHostPrimitives: false, onClipboardWrite: val => copied.push(val) })
+  const { W, Panel, RssFeedBrowser, RssWorkflowGuide } = env.client.probe
+
+  // Accessible disclosure marker & reduced-motion CSS check
+  assert.match(W.styles, /content:\s*"▸";[\s\S]*?content:\s*"▸"\s*\/\s*""/)
+  assert.match(W.styles, /@media\s*\(prefers-reduced-motion:\s*no-preference\)[\s\S]*?transition:\s*rotate/)
+
+  // 1) My feeds & feed detail 1-click AI briefing prompts
+  const sampleFeed = {
+    id: 'feed-1',
+    name: '少数派',
+    url: 'https://sspai.com/feed',
+    category: '科技',
+    check: { ok: true, entryCount: 12, checkedAt: '2026-11-17T12:00:00Z' },
+  }
+  const renderFeeds = () =>
+    env.rerenderTree(() =>
+      env.React.createElement(RssFeedBrowser, {
+        feeds: [sampleFeed],
+        filtered: [sampleFeed],
+        categories: ['科技'],
+        query: '',
+        setQuery() {},
+        category: '科技',
+        setCategory() {},
+        writable: true,
+        busy: '',
+        run() {},
+        open() {},
+        setNotice: msg => notices.push(msg),
+      }),
+    )
+
+  let feedTree = renderFeeds()
+  const dailyBtn = env.findAll(feedTree, n => n.type === 'button' && n.props?.['data-copy-prompt'] === '抓取我订阅源的最新文章，按分类生成今日重点简报')[0]
+  const categoryBtn = env.findAll(feedTree, n => n.type === 'button' && n.props?.['data-copy-prompt'] === '抓取「科技」分类订阅源的最新文章并整理重点摘要')[0]
+  const feedSpecificBtn = env.findAll(feedTree, n => n.type === 'button' && n.props?.['data-copy-prompt'] === '抓取「少数派」最新更新并提炼 3 条核心结论')[0]
+  assert.ok(dailyBtn, 'expected 1-click daily AI briefing prompt button in My feeds')
+  assert.ok(categoryBtn, 'expected 1-click category AI briefing prompt button when category filter is active')
+  assert.ok(feedSpecificBtn, 'expected feed-specific 3-takeaway AI prompt button in feed detail')
+
+  feedSpecificBtn.props.onClick()
+  await new Promise(r => setTimeout(r, 10))
+  feedTree = renderFeeds()
+
+  assert.deepEqual(copied, ['抓取「少数派」最新更新并提炼 3 条核心结论'])
+  assert.equal(notices.length, 1)
+  assert.match(notices[0], /已复制 AI 简报指令/)
+  const copiedFeedBtn = env.findAll(feedTree, n => n.type === 'button' && n.props?.['data-copy-prompt'] === '抓取「少数派」最新更新并提炼 3 条核心结论' && n.props?.['data-copied'] === 'true')[0]
+  assert.ok(copiedFeedBtn, 'copied feed prompt button stamps data-copied="true"')
+  assert.ok(!copiedFeedBtn.props.disabled, 'copy button stays enabled during feedback')
+  const statusRegion = env.findAll(feedTree, n => n.props?.role === 'status' && n.props?.['data-visible'] === 'true')[0]
+  assert.ok(statusRegion, 'external role="status" announces copy confirmation')
+
+  // 2) Collapsible 3-step human workflow guide without h1-h6 inside <summary>
+  env.resetState()
+  const guideTree = env.renderTree(() => env.React.createElement(RssWorkflowGuide, { defaultOpen: true }))
+  assert.equal(guideTree.type, 'details')
+  const summaryNode = env.findAll(guideTree, n => n.type === 'summary')[0]
+  assert.ok(summaryNode)
+  const headingsInSummary = env.findAll(summaryNode, n => typeof n.type === 'string' && /^h[1-6]$/.test(n.type))
+  assert.equal(headingsInSummary.length, 0, 'never place h1-h6 inside <summary>')
+
+  // 3) Panel mounts RssWorkflowGuide and transfer tab pairs <label htmlFor> with <input/textarea id>
+  env.resetState()
+  env.renderTree(() => env.React.createElement(Panel, { workbench: true }))
+  await new Promise(r => setTimeout(r, 10))
+  let panelTree = env.rerenderTree(() => env.React.createElement(Panel, { workbench: true }))
+  const panelGuides = env.findAll(panelTree, n => n.type === 'details' && Object.hasOwn(n.props || {}, 'data-rss-workflow-guide'))
+  assert.equal(panelGuides.length, 1, 'Panel renders collapsible 3-step RSS workflow guide')
+
+  const transferTab = env.findAll(panelTree, n => n.type === 'button' && n.props?.role === 'tab' && n.props?.id?.endsWith('-tab-transfer'))[0]
+  assert.ok(transferTab)
+  transferTab.props.onClick()
+  panelTree = env.rerenderTree(() => env.React.createElement(Panel, { workbench: true }))
+  const labelsWithFor = env.findAll(panelTree, n => n.type === 'label' && typeof n.props?.htmlFor === 'string' && n.props.htmlFor.length > 0)
+  assert.ok(labelsWithFor.length >= 3, 'OPML file, textarea and checkbox labels explicitly specify htmlFor')
+  for (const lbl of labelsWithFor) {
+    const control = env.findAll(panelTree, n => n.props?.id === lbl.props.htmlFor)[0]
+    assert.ok(control, 'found matching form control id for label htmlFor=' + lbl.props.htmlFor)
+  }
+
+  env.cleanup()
 })

@@ -1,5 +1,10 @@
 # 更新记录
 
+## 0.10.3 (2026-11-18)
+
+- 在「我的订阅」与单源详情页新增分类/单源上下文感知的一键复制 AI 简报指令按钮，空状态补齐「推荐订阅源 / 导入 OPML」直达入口，并新增可折叠三步订阅简报使用指引。
+- Add category- and feed-aware 1-click AI briefing prompt copy buttons in My Feeds and feed details, quick empty-state actions for starter feeds and OPML import, and a collapsible 3-step workflow guide.
+
 ## 0.10.2 (2026-11-18)
 
 - 更新区底部新增克制、无打扰的 GitHub 点赞与问题反馈快捷链接，并完善中英文检索关键词。

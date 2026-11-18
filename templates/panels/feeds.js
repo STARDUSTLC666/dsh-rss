@@ -60,7 +60,105 @@ function RssArticlePreview({ value }) {
   );
 }
 
-function RssFeedBrowser({ feeds, filtered, categories, query, setQuery, category, setCategory, writable, busy, run, open }) {
+function RssPromptButton({ prompt, label, variant = 'outline', setNotice, className }) {
+  return h(W.CopyPrompt, {
+    prompt,
+    label,
+    variant,
+    className,
+    copiedLabel: rssText('已复制', 'Copied'),
+    statusText: rssText('已复制指令，粘贴到对话发送即可', 'Prompt copied — paste into chat'),
+    failedText: rssText('复制失败', 'Copy failed'),
+    onCopied: () => setNotice?.(rssText('已复制 AI 简报指令，回到对话粘贴发送即可。', 'AI briefing prompt copied — paste it into chat.')),
+  });
+}
+
+function RssWorkflowGuide({ defaultOpen = false, setNotice, onNavigateTab }) {
+  return h(
+    W.GuideDetails,
+    {
+      open: defaultOpen,
+      className: 'rss-workflow-guide',
+      'data-rss-workflow-guide': '',
+      summary: rssText(
+        '高效用法 3 步流：选源订阅 → 面板管理分组 / 导入 OPML → 一键复制指令让助手生成每日简报',
+        '3-Step RSS Workflow: Preview & subscribe → Organize / import OPML → Copy 1-click prompt for AI briefings',
+      ),
+    },
+    h(
+      'ol',
+      { className: 'dsh-wb-guide-steps' },
+      h(
+        'li',
+        null,
+        rssText(
+          '选源订阅：在「推荐订阅源」按分类先预览近期文章再点订阅，或手动添加网站原生 RSS / Atom 地址（仅浏览目录不会自动联网）。',
+          'Preview & subscribe: Browse Recommended feeds, preview recent entries first, or add your own RSS / Atom URL.',
+        ),
+      ),
+      h(
+        'li',
+        null,
+        rssText(
+          '面板管理分组 / 导入 OPML：在「我的订阅」按分类管理并检查源可用性，或在「导入与导出」先预览后导入、备份 OPML。',
+          'Organize & OPML: Group feeds by category, check feed health, or preview-import and export OPML backups.',
+        ),
+      ),
+      h(
+        'li',
+        null,
+        rssText(
+          '一键复制指令生成简报：点击「复制今日简报指令」或订阅源详情里的「复制单源提炼指令」，粘贴到对话即可让助手抓取并提炼重点。',
+          'Read AI briefings in chat: Copy the daily or per-feed briefing prompt in one click and paste it into chat for summarized insights.',
+        ),
+      ),
+    ),
+    h(
+      'div',
+      { className: 'dsh-wb-guide-actions' },
+      h(RssPromptButton, {
+        variant: 'primary',
+        setNotice,
+        prompt: rssText(
+          '抓取我订阅源的最新文章，按分类生成今日重点简报',
+          'Fetch the latest articles from my subscribed feeds and generate today’s key briefing by category',
+        ),
+        label: rssText('复制今日简报指令', 'Copy daily briefing prompt'),
+      }),
+      onNavigateTab
+        ? h(
+            W.Button,
+            { icon: 'rss', onClick: () => onNavigateTab('catalog') },
+            t('recommended'),
+          )
+        : null,
+      onNavigateTab
+        ? h(
+            W.Button,
+            { icon: 'upload', onClick: () => onNavigateTab('transfer') },
+            t('import'),
+          )
+        : null,
+    ),
+  );
+}
+
+function RssFeedBrowser({
+  feeds,
+  filtered,
+  categories,
+  query,
+  setQuery,
+  category,
+  setCategory,
+  writable,
+  busy,
+  run,
+  open,
+  setNotice,
+  onOpenCatalog,
+  onOpenTransfer,
+}) {
   const [activeId, setActiveId] = useState(null),
     [previews, setPreviews] = useState({});
   const active = filtered.find(feed => feed.id === activeId) || filtered[0];
@@ -70,11 +168,37 @@ function RssFeedBrowser({ feeds, filtered, categories, query, setQuery, category
       {
         title: t('empty'),
         icon: 'rss',
-        action: h(W.Button, { icon: 'plus', variant: 'primary', onClick: event => open('feed', null, event), disabled: !writable || !!busy }, t('add')),
+        action: h(
+          'div',
+          { className: 'dsh-wb-actions rss-empty-actions' },
+          onOpenCatalog
+            ? h(
+                W.Button,
+                { icon: 'rss', variant: 'primary', disabled: !!busy, onClick: onOpenCatalog },
+                t('recommended'),
+              )
+            : null,
+          h(
+            W.Button,
+            { icon: 'plus', variant: onOpenCatalog ? 'outline' : 'primary', onClick: event => open('feed', null, event), disabled: !writable || !!busy },
+            t('add'),
+          ),
+          onOpenTransfer
+            ? h(
+                W.Button,
+                { icon: 'upload', disabled: !writable || !!busy, onClick: onOpenTransfer },
+                t('import'),
+              )
+            : null,
+        ),
       },
       t('emptyHint'),
     );
   }
+  const dailyBriefingPrompt = rssText(
+    '抓取我订阅源的最新文章，按分类生成今日重点简报',
+    'Fetch the latest articles from my subscribed feeds and generate today’s key briefing by category',
+  );
   const categoryItems = [
     { id: '*', label: t('all') },
     ...categories.map(value => ({ id: value, label: value || t('uncategorized') })),
@@ -120,6 +244,26 @@ function RssFeedBrowser({ feeds, filtered, categories, query, setQuery, category
             setActiveId(null);
           },
         }),
+        h(
+          'div',
+          { className: 'rss-briefing-bar' },
+          h(RssPromptButton, {
+            variant: 'primary',
+            setNotice,
+            prompt: dailyBriefingPrompt,
+            label: rssText('复制今日简报指令', 'Copy daily briefing prompt'),
+          }),
+          category !== '*'
+            ? h(RssPromptButton, {
+                setNotice,
+                prompt: rssText(
+                  '抓取「' + (category || t('uncategorized')) + '」分类订阅源的最新文章并整理重点摘要',
+                  'Fetch the latest articles in the “' + (category || t('uncategorized')) + '” category and summarize key highlights',
+                ),
+                label: rssText('复制本分类简报', 'Copy category briefing'),
+              })
+            : null,
+        ),
       ),
       filtered.map(feed =>
         h(W.Row, {
@@ -188,6 +332,34 @@ function RssFeedBrowser({ feeds, filtered, categories, query, setQuery, category
                 { icon: 'trash', variant: 'danger', disabled: !writable || !!busy, onClick: event => open('remove', active, event) },
                 t('remove'),
               ),
+            ),
+          ),
+          h(
+            'section',
+            { className: 'rss-briefing-card', 'data-dsh-card': '' },
+            h(
+              'div',
+              { className: 'rss-briefing-head' },
+              h('strong', null, rssText('AI 对话简报指令', 'AI chat briefing prompts')),
+              h('span', { className: 'rss-muted' }, rssText('一键复制后粘贴到聊天即可让助手抓取并提炼结论', 'Copy in one click and paste into chat for instant AI takeaways')),
+            ),
+            h(
+              'div',
+              { className: 'dsh-wb-prompt-chips' },
+              h(RssPromptButton, {
+                variant: 'primary',
+                setNotice,
+                prompt: rssText(
+                  '抓取「' + (active.name || active.url) + '」最新更新并提炼 3 条核心结论',
+                  'Fetch the latest updates from “' + (active.name || active.url) + '” and distill 3 key takeaways',
+                ),
+                label: rssText('复制单源提炼指令', 'Copy 3-takeaway prompt'),
+              }),
+              h(RssPromptButton, {
+                setNotice,
+                prompt: dailyBriefingPrompt,
+                label: rssText('复制全站今日简报', 'Copy daily briefing'),
+              }),
             ),
           ),
           h(RssArticlePreview, { value: previews[active.id] }),
@@ -534,6 +706,51 @@ const RSS_WORKBENCH_CSS = `
 
 .rss-workbench .rss-inline-status {
   margin: 4px 0;
+}
+
+.rss-workbench .rss-guide-wrap {
+  padding: 10px 18px 2px;
+  width: min(100%, 960px);
+}
+
+.rss-workbench .rss-empty-actions {
+  justify-content: center;
+}
+
+.rss-workbench .rss-briefing-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.rss-workbench .rss-briefing-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--w-radius-md);
+  border: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
+  background: var(--w-bg-1);
+}
+
+.rss-workbench .rss-briefing-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 10px;
+}
+
+.rss-workbench .rss-briefing-head > strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--w-ink);
+}
+
+.rss-workbench .rss-briefing-head > .rss-muted {
+  margin: 0;
+  font-size: 12px;
 }
 
 .rss-workbench .rss-transfer {
