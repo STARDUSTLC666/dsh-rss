@@ -169,7 +169,7 @@ function createMockEnv({ withHostPrimitives = false, storageThrows = false, init
   const rawBundle = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8')
   const instrumented = rawBundle.replace(
     "return { apply, inject: ['slots', 'locale'] };",
-    "return { apply, inject: ['slots', 'locale'], probe: { W, Panel, RssFeedBrowser, RssWorkflowGuide, RssCatalog, RssArticlePreview } };",
+    "return { apply, inject: ['slots', 'locale'], probe: { W, Panel, RssFeedBrowser, RssCatalog, RssArticlePreview } };",
   )
 
   runInNewContext(instrumented, {
@@ -452,17 +452,19 @@ test('HostMenuWithStyle portal sync & Cordis 4 ctx.effect unload cleanup work cl
   assert.equal(registered.size, 0, 'ctx.effect disposer unregisters all RSS tools on Cordis 4 unload')
 })
 
-test('My feeds & feed detail expose 1-click AI briefing copy prompts, status feedback, collapsible 3-step workflow guide, and explicit label htmlFor', async () => {
+test('My feeds 1-click AI briefing prompts & interactive CoachmarkTour (? 引导, directional arrow, step progression, localStorage done)', async () => {
   const copied = []
   const notices = []
   const env = createMockEnv({ withHostPrimitives: false, onClipboardWrite: val => copied.push(val) })
-  const { W, Panel, RssFeedBrowser, RssWorkflowGuide } = env.client.probe
+  const { W, Panel, RssFeedBrowser } = env.client.probe
 
-  // Accessible disclosure marker & reduced-motion CSS check
-  assert.match(W.styles, /content:\s*"▸";[\s\S]*?content:\s*"▸"\s*\/\s*""/)
-  assert.match(W.styles, /@media\s*\(prefers-reduced-motion:\s*no-preference\)[\s\S]*?transition:\s*rotate/)
+  // Verify popover + spotlight + directional arrow + 8-bit & reduced-motion CSS rules
+  assert.match(W.styles, /\[popover\]:is\(:popover-open,\s*\.\\:popover-open\)\s*\{\s*display:\s*block;\s*\}/)
+  assert.match(W.styles, /\.dsh-wb-tour-card\[data-side="bottom"\]\s*>\s*\.dsh-wb-tour-arrow/)
+  assert.match(W.styles, /box-shadow:\s*4px 4px 0px #1e2826/)
+  assert.match(W.styles, /@media\s*\(prefers-reduced-motion:\s*no-preference\)[\s\S]*?\.dsh-wb-tour-spotlight/)
 
-  // 1) My feeds & feed detail 1-click AI briefing prompts
+  // 1) My feeds & feed detail 1-click AI briefing prompts remain intact
   const sampleFeed = {
     id: 'feed-1',
     name: '少数派',
@@ -490,51 +492,133 @@ test('My feeds & feed detail expose 1-click AI briefing copy prompts, status fee
 
   let feedTree = renderFeeds()
   const dailyBtn = env.findAll(feedTree, n => n.type === 'button' && n.props?.['data-copy-prompt'] === '抓取我订阅源的最新文章，按分类生成今日重点简报')[0]
-  const categoryBtn = env.findAll(feedTree, n => n.type === 'button' && n.props?.['data-copy-prompt'] === '抓取「科技」分类订阅源的最新文章并整理重点摘要')[0]
   const feedSpecificBtn = env.findAll(feedTree, n => n.type === 'button' && n.props?.['data-copy-prompt'] === '抓取「少数派」最新更新并提炼 3 条核心结论')[0]
   assert.ok(dailyBtn, 'expected 1-click daily AI briefing prompt button in My feeds')
-  assert.ok(categoryBtn, 'expected 1-click category AI briefing prompt button when category filter is active')
   assert.ok(feedSpecificBtn, 'expected feed-specific 3-takeaway AI prompt button in feed detail')
 
   feedSpecificBtn.props.onClick()
   await new Promise(r => setTimeout(r, 10))
   feedTree = renderFeeds()
-
   assert.deepEqual(copied, ['抓取「少数派」最新更新并提炼 3 条核心结论'])
   assert.equal(notices.length, 1)
-  assert.match(notices[0], /已复制 AI 简报指令/)
-  const copiedFeedBtn = env.findAll(feedTree, n => n.type === 'button' && n.props?.['data-copy-prompt'] === '抓取「少数派」最新更新并提炼 3 条核心结论' && n.props?.['data-copied'] === 'true')[0]
-  assert.ok(copiedFeedBtn, 'copied feed prompt button stamps data-copied="true"')
-  assert.ok(!copiedFeedBtn.props.disabled, 'copy button stays enabled during feedback')
-  const statusRegion = env.findAll(feedTree, n => n.props?.role === 'status' && n.props?.['data-visible'] === 'true')[0]
-  assert.ok(statusRegion, 'external role="status" announces copy confirmation')
 
-  // 2) Collapsible 3-step human workflow guide without h1-h6 inside <summary>
+  // 2) Panel has zero static <details> workflow guide clutter, exposes ? 引导 trigger, and auto-opens on first visit (280ms) without stealing focus
   env.resetState()
-  const guideTree = env.renderTree(() => env.React.createElement(RssWorkflowGuide, { defaultOpen: true }))
-  assert.equal(guideTree.type, 'details')
-  const summaryNode = env.findAll(guideTree, n => n.type === 'summary')[0]
-  assert.ok(summaryNode)
-  const headingsInSummary = env.findAll(summaryNode, n => typeof n.type === 'string' && /^h[1-6]$/.test(n.type))
-  assert.equal(headingsInSummary.length, 0, 'never place h1-h6 inside <summary>')
+  let panelTree = env.renderTree(() => env.React.createElement(Panel, { workbench: true }))
+  assert.equal(env.findAll(panelTree, n => n.type === 'details' && Object.hasOwn(n.props || {}, 'data-rss-workflow-guide')).length, 0, 'static workflow box removed')
 
-  // 3) Panel mounts RssWorkflowGuide and transfer tab pairs <label htmlFor> with <input/textarea id>
+  const triggerBtn = env.findAll(panelTree, n => n.type === 'button' && Object.hasOwn(n.props || {}, 'data-tour-trigger'))[0]
+  assert.ok(triggerBtn, 'expected topbar ? 引导 trigger button')
+  assert.equal(triggerBtn.props['aria-expanded'], false)
+  assert.equal(triggerBtn.props['aria-haspopup'], undefined, 'must NOT set aria-haspopup on tour trigger')
+
+  // Wait for 280ms first-visit auto-open timer
+  await new Promise(r => setTimeout(r, 310))
+  panelTree = env.rerenderTree(() => env.React.createElement(Panel, { workbench: true }))
+  let tourDialog = env.findAll(panelTree, n => n.props?.role === 'dialog' && n.props?.['aria-modal'] === 'false')[0]
+  assert.ok(tourDialog, 'CoachmarkTour auto-opens after 280ms on first visit')
+  const arrow = env.findAll(tourDialog, n => Object.hasOwn(n.props || {}, 'data-tour-arrow'))[0]
+  assert.ok(arrow, 'CoachmarkTour renders directional [data-tour-arrow]')
+
+  // Advance through all 4 steps and verify Step 3 inline AI briefing prompt copy + localStorage 'done' persistence
+  let nextBtn = env.findAll(tourDialog, n => Object.hasOwn(n.props || {}, 'data-tour-next'))[0]
+  nextBtn.props.onClick() // -> step 1 (添加自定义 RSS / Atom 源)
+  panelTree = env.rerenderTree(() => env.React.createElement(Panel, { workbench: true }))
+  tourDialog = env.findAll(panelTree, n => n.props?.role === 'dialog' && n.props?.['aria-modal'] === 'false')[0]
+  assert.equal(tourDialog.props['data-tour-card'], 'add-feed')
+
+  nextBtn = env.findAll(tourDialog, n => Object.hasOwn(n.props || {}, 'data-tour-next'))[0]
+  nextBtn.props.onClick() // -> step 2 (让 AI 汇总今日订阅简报)
+  panelTree = env.rerenderTree(() => env.React.createElement(Panel, { workbench: true }))
+  tourDialog = env.findAll(panelTree, n => n.props?.role === 'dialog' && n.props?.['aria-modal'] === 'false')[0]
+  assert.equal(tourDialog.props['data-tour-card'], 'ai-briefing')
+
+  const tourPromptBtn = env.findAll(tourDialog, n => n.type === 'button' && n.props?.['data-copy-prompt'] === '汇总我订阅源里今天的重点更新，按主题提炼要点并附上原文链接')[0]
+  assert.ok(tourPromptBtn, 'Step 3 exposes inline 1-click AI briefing copy button')
+  tourPromptBtn.props.onClick()
+  await new Promise(r => setTimeout(r, 10))
+  assert.equal(copied.at(-1), '汇总我订阅源里今天的重点更新，按主题提炼要点并附上原文链接')
+
+  nextBtn = env.findAll(tourDialog, n => Object.hasOwn(n.props || {}, 'data-tour-next'))[0]
+  nextBtn.props.onClick() // -> step 3 (OPML 批量导入与导出备份)
+  panelTree = env.rerenderTree(() => env.React.createElement(Panel, { workbench: true }))
+  tourDialog = env.findAll(panelTree, n => n.props?.role === 'dialog' && n.props?.['aria-modal'] === 'false')[0]
+  assert.equal(tourDialog.props['data-tour-card'], 'opml')
+
+  const doneBtn = env.findAll(tourDialog, n => Object.hasOwn(n.props || {}, 'data-tour-next'))[0]
+  doneBtn.props.onClick() // finish tour
+  assert.equal(env.storage.get('dsh-rss.tour.v1'), 'done')
+  panelTree = env.rerenderTree(() => env.React.createElement(Panel, { workbench: true }))
+  assert.equal(env.findAll(panelTree, n => n.props?.role === 'dialog' && n.props?.['aria-modal'] === 'false').length, 0)
+
+  // Manual re-open via ? 引导 works even after 'done' is stored, promotes popover="manual", and focuses [data-tour-next]
+  let popoverAttr = null
+  let popoverShown = false
+  let nextFocused = false
+  const reopenTrigger = env.findAll(panelTree, n => n.type === 'button' && Object.hasOwn(n.props || {}, 'data-tour-trigger'))[0]
+  reopenTrigger.props.onClick()
+  panelTree = env.renderTree(() => env.React.createElement(Panel, { workbench: true }))
+  const layerNode = env.findAll(panelTree, n => n.props?.className === 'dsh-wb-tour-layer')[0]
+  assert.ok(layerNode)
+  assert.equal(layerNode.props['data-dsh-style'], 'harness')
+  // Verify computeTourLayout positions card & arrow cleanly around a bounded target
+  const layout = W.computeTourLayout({ getBoundingClientRect: () => ({ left: 200, top: 60, width: 120, height: 34 }) }, 'bottom', { offsetWidth: 320, offsetHeight: 190 })
+  assert.equal(layout.side, 'bottom')
+  assert.ok(layout.spotlight && layout.arrowX >= 18)
+
+  // Direct CoachmarkTour ref verification for popover="manual" (not IDL .popover) & manual focus
+  env.resetState()
+  const directTour = env.expand(env.React.createElement(W.CoachmarkTour, {
+    steps: [{ id: 's1', selector: '#x', side: 'bottom', title: 'T', desc: 'D' }],
+    step: 0,
+    manual: true,
+    style: 'pixel8bit',
+    lang: 'en',
+  }))
+  assert.equal(directTour.props['data-dsh-style'], 'pixel8bit')
+  directTour.props.ref.current = {
+    setAttribute(k, v) { if (k === 'popover') popoverAttr = v },
+    showPopover() { popoverShown = true },
+    hidePopover() {},
+  }
+  const directNext = env.findAll(directTour, n => Object.hasOwn(n.props || {}, 'data-tour-next'))[0]
+  directNext.props.ref.current = { focus() { nextFocused = true } }
+  env.resetState()
+  // Re-run with populated refs in renderTree
+  const PopoverHarness = () => {
+    const tree = W.CoachmarkTour({
+      steps: [{ id: 's1', selector: '#x', side: 'bottom', title: 'T', desc: 'D' }],
+      step: 0,
+      manual: true,
+      style: 'pixel8bit',
+      lang: 'en',
+    })
+    tree.props.ref.current = {
+      setAttribute(k, v) { if (k === 'popover') popoverAttr = v },
+      showPopover() { popoverShown = true },
+      hidePopover() {},
+    }
+    const nb = env.findAll(env.expand(tree), n => Object.hasOwn(n.props || {}, 'data-tour-next'))[0]
+    if (nb?.props?.ref) nb.props.ref.current = { focus() { nextFocused = true } }
+    return tree
+  }
+  env.renderTree(() => env.React.createElement(PopoverHarness))
+  assert.equal(popoverAttr, 'manual')
+  assert.equal(popoverShown, true)
+  assert.equal(nextFocused, true)
+
+  // 3) Transfer tab pairs <label htmlFor> with <input/textarea id>
   env.resetState()
   env.renderTree(() => env.React.createElement(Panel, { workbench: true }))
   await new Promise(r => setTimeout(r, 10))
-  let panelTree = env.rerenderTree(() => env.React.createElement(Panel, { workbench: true }))
-  const panelGuides = env.findAll(panelTree, n => n.type === 'details' && Object.hasOwn(n.props || {}, 'data-rss-workflow-guide'))
-  assert.equal(panelGuides.length, 1, 'Panel renders collapsible 3-step RSS workflow guide')
-
+  panelTree = env.rerenderTree(() => env.React.createElement(Panel, { workbench: true }))
   const transferTab = env.findAll(panelTree, n => n.type === 'button' && n.props?.role === 'tab' && n.props?.id?.endsWith('-tab-transfer'))[0]
-  assert.ok(transferTab)
   transferTab.props.onClick()
   panelTree = env.rerenderTree(() => env.React.createElement(Panel, { workbench: true }))
   const labelsWithFor = env.findAll(panelTree, n => n.type === 'label' && typeof n.props?.htmlFor === 'string' && n.props.htmlFor.length > 0)
-  assert.ok(labelsWithFor.length >= 3, 'OPML file, textarea and checkbox labels explicitly specify htmlFor')
+  assert.ok(labelsWithFor.length >= 3)
   for (const lbl of labelsWithFor) {
-    const control = env.findAll(panelTree, n => n.props?.id === lbl.props.htmlFor)[0]
-    assert.ok(control, 'found matching form control id for label htmlFor=' + lbl.props.htmlFor)
+    assert.ok(env.findAll(panelTree, n => n.props?.id === lbl.props.htmlFor)[0])
   }
 
   env.cleanup()

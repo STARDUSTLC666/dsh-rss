@@ -98,6 +98,7 @@ window.__ModuleLoader__.load({ id: 'dsh-rss', factory: require => {
             const [sourcePreviews, setSourcePreviews] = useState({});
             const categoryListId = typeof useId === 'function' ? useId() : 'rss-cat-list';
             const feedFormId = categoryListId + '-form';
+            const rssTabsId = categoryListId + '-tabs';
             const controller = useRef(null), trigger = useRef(null);
             // Update protection: dsh-rss
             __stardustUpdatesGuard(React, "dsh-rss", { dirty: !!opml.trim(), busy: !!busy || !!modal });
@@ -202,6 +203,56 @@ window.__ModuleLoader__.load({ id: 'dsh-rss', factory: require => {
                 (category === '*' || feed.category === category) &&
                 (feed.name + ' ' + feed.url).toLowerCase().includes(query.trim().toLowerCase()));
 
+            const rssTourSteps = [
+                {
+                    id: 'catalog',
+                    selector: '#' + rssTabsId + '-tab-catalog',
+                    fallback: '[data-tour="rss-recommended"]',
+                    side: 'bottom',
+                    title: rssText('推荐来源与先预览再订阅', 'Recommended sources & preview first'),
+                    desc: rssText(
+                        '先从「推荐订阅源」按分类挑选并点「预览并检查」查看近期文章，确认喜欢后再订阅；仅浏览目录不会自动联网。',
+                        'Pick topics from Recommended feeds and preview recent entries before subscribing; browsing never contacts sites automatically.',
+                    ),
+                },
+                {
+                    id: 'add-feed',
+                    selector: '[data-tour="rss-add"]',
+                    side: 'bottom',
+                    title: rssText('添加自定义 RSS / Atom 源', 'Add custom RSS / Atom feeds'),
+                    desc: rssText(
+                        '点击「添加订阅」可输入任意网站的原生 RSS / Atom 地址，并设置显示名称与自定义分类分组。',
+                        'Click Add feed to enter any publisher RSS / Atom URL with a display name and custom category.',
+                    ),
+                },
+                {
+                    id: 'ai-briefing',
+                    selector: '[data-tour="rss-category-filter"]',
+                    fallback: '#' + rssTabsId + '-tab-feeds',
+                    side: 'bottom',
+                    title: rssText('让 AI 汇总今日订阅简报', 'Summarize today’s briefing with AI'),
+                    desc: rssText(
+                        '订阅管理就绪后，一键复制下方指令发到对话，助手会自动抓取最新更新、按主题提炼要点并附上原文链接。',
+                        'Copy the prompt below into chat so AI fetches updates across your feeds and summarizes key takeaways with links.',
+                    ),
+                    prompt: rssText(
+                        '汇总我订阅源里今天的重点更新，按主题提炼要点并附上原文链接',
+                        'Summarize today’s key updates across my RSS feeds by topic with source links',
+                    ),
+                    promptLabel: rssText('复制：汇总今日重点更新', 'Copy: Summarize today’s updates'),
+                },
+                {
+                    id: 'opml',
+                    selector: '#' + rssTabsId + '-tab-transfer',
+                    side: 'bottom',
+                    title: rssText('OPML 批量导入与导出备份', 'OPML batch import & backup'),
+                    desc: rssText(
+                        '从其他阅读器迁移时可在「导入与导出」先预览新增与重复项再确认导入，也可随时一键导出 OPML 备份。',
+                        'Preview new and duplicate feeds before importing an OPML file, or export an OPML backup anytime.',
+                    ),
+                },
+            ];
+
             return h(W.Page, {
                 workbench,
                 icon: 'rss',
@@ -209,22 +260,27 @@ window.__ModuleLoader__.load({ id: 'dsh-rss', factory: require => {
                 title: t('title'),
                 subtitle: rssText('选择可信来源，先预览再订阅。', 'Choose trusted sources. Preview before subscribing.'),
                 className: 'dshr rss-workbench',
+                tourSteps: rssTourSteps,
+                tourStorageKey: 'dsh-rss.tour.v1',
+                modalOpen: Boolean(modal),
+                onTourCopyPrompt: async text => {
+                    const ok = await W.writeClipboardText(text);
+                    if (ok) {
+                        setNotice(rssText('已复制 AI 简报指令，回到对话粘贴发送即可。', 'AI briefing prompt copied — paste it into chat.'));
+                    }
+                    return ok;
+                },
                 actions: h(React.Fragment, null,
-                    h(W.Button, { icon: 'plus', variant: 'primary', disabled: !writable || !!busy, onClick: event => open('feed', null, event) }, t('add')),
-                    h(W.Button, { icon: 'rss', disabled: !state || !!busy, onClick: () => setActiveTab('catalog') }, t('recommended')),
+                    h(W.Button, { icon: 'plus', variant: 'primary', 'data-tour': 'rss-add', disabled: !writable || !!busy, onClick: event => open('feed', null, event) }, t('add')),
+                    h(W.Button, { icon: 'rss', 'data-tour': 'rss-recommended', disabled: !state || !!busy, onClick: () => setActiveTab('catalog') }, t('recommended')),
                     h(W.IconButton, { icon: 'refresh', spinning: busy === 'load', label: t('refresh'), disabled: !!busy, onClick: () => run(null) })),
             },
                 h('style', { 'data-plugin-css': 'dsh-rss/workbench' }, RSS_WORKBENCH_CSS),
                 state && !writable ? h(W.Status, { tone: 'warn' }, t('readonly')) : null,
                 !modal ? h(W.Status, { tone: 'error' }, error) : null,
                 h(W.Status, { tone: 'success' }, notice),
-                !loading && state ? h('div', { className: 'rss-guide-wrap' },
-                    h(RssWorkflowGuide, {
-                        defaultOpen: !feeds.length,
-                        setNotice,
-                        onNavigateTab: setActiveTab,
-                    })) : null,
                 h(W.Tabs, {
+                    id: rssTabsId,
                     label: rssText('RSS 视图', 'RSS views'),
                     value: activeTab,
                     onChange: setActiveTab,
