@@ -1,6 +1,6 @@
 {
   "name": "dsh-rss",
-  "version": "0.10.7",
+  "version": "0.11.0",
   "description": "DeepSeek Harness RSS / Atom 订阅工作台：分类来源目录、先预览再订阅、检索与 OPML 导入导出，支持 5 套工作台主题（原生清透 / 米白纸感 / Claude 暖书卷 / 8-Bit 像素 / 晴空薄荷）与微交互动效。欢迎提交 issues 和 PR。",
   "type": "module",
   "main": "lib/index.js",

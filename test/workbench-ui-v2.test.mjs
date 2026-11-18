@@ -49,6 +49,7 @@ function createMockEnv({ withHostPrimitives = false, storageThrows = false, init
   const headStyles = []
   const mockDocument = {
     baseURI: 'http://127.0.0.1:4321/',
+    documentElement: makeDomElement('html'),
     head: {
       appendChild(el) {
         headStyles.push(el)
@@ -65,7 +66,7 @@ function createMockEnv({ withHostPrimitives = false, storageThrows = false, init
       return null
     },
     querySelectorAll(selector) {
-      if (selector === '[data-dsh-portal-synced]') return [...syncedNodes]
+      if (selector.includes('[data-dsh-portal-synced]')) return [...syncedNodes]
       return []
     },
   }
@@ -261,6 +262,7 @@ function createMockEnv({ withHostPrimitives = false, storageThrows = false, init
     React,
     client,
     storage,
+    mockDocument,
     dispatchedEvents,
     makeDomElement,
     renderTree,
@@ -309,10 +311,14 @@ test('RSS Workbench UI v2 lazily integrates @deepseek-ai/dsh-client-ui-primitive
   assert.ok(env.getPrimitivesRequireCount() > 0, 'host primitives resolved lazily during render')
   assert.equal(pageTree.type, 'section')
   assert.equal(pageTree.props['data-dsh-style'], 'harness')
+  assert.equal(pageTree.props['data-dsh-font'], 'arcade')
   assert.equal(pageTree.props['data-main'], 'true')
 
+  const fontTrigger = env.findAll(pageTree, n => n.type === 'HostButton' && String(n.props?.className || '').includes('dsh-font-trigger'))[0]
+  assert.ok(fontTrigger, 'renders compact FontSwitcher trigger beside StyleSwitcher')
+
   const hostMenus = env.findAll(pageTree, n => n.type === 'HostMenu')
-  assert.ok(hostMenus.length >= 2, 'StyleSwitcher and category ChoiceMenu use host Menu')
+  assert.ok(hostMenus.length >= 3, 'StyleSwitcher, FontSwitcher, and category ChoiceMenu use host Menu')
 
   const hostInputs = env.findAll(pageTree, n => n.type === 'HostInput')
   assert.ok(hostInputs.length >= 1, 'Search bar uses host Input')
@@ -327,16 +333,21 @@ test('RSS Workbench UI v2 lazily integrates @deepseek-ai/dsh-client-ui-primitive
   env.cleanup()
 })
 
-test('5-style theme switcher syncs localStorage, dsh-stardust-style events, and portaled Modal dialogs', () => {
+test('13-style theme switcher & 8-font switcher sync localStorage, custom events, and portaled Modal dialogs', () => {
   const env = createMockEnv({ withHostPrimitives: false })
   const { W, RssArticlePreview } = env.client.probe
 
   assert.deepEqual(
     Array.from(W.DSH_STYLES, s => s.id),
-    ['harness', 'cream', 'claude', 'pixel8bit', 'mint'],
+    ['harness', 'cream', 'claude', 'pixel8bit', 'mint', 'glass', 'eink', 'blueprint', 'risograph', 'win98', 'songhui', 'frutiger', 'gazette'],
+  )
+  assert.equal(W.DSH_DEFAULT_FONT, 'arcade')
+  assert.deepEqual(
+    Array.from(W.DSH_FONTS, f => f.id),
+    ['arcade', 'auto', 'songkai', 'fangsong', 'poster', 'retro98', 'serif', 'modern'],
   )
 
-  // Article preview external link carries data-dsh-icon="external" for diagonal nudge animation
+  // Article preview external link carries data-dsh-icon="external" and [data-dsh-serif]
   const previewTree = env.expand(env.React.createElement(RssArticlePreview, {
     value: {
       checkedAt: '2026-11-17T12:00:00Z',
@@ -345,8 +356,9 @@ test('5-style theme switcher syncs localStorage, dsh-stardust-style events, and 
   }))
   const externalIcons = env.findAll(previewTree, n => n.type === 'svg' && n.props['data-dsh-icon'] === 'external')
   assert.equal(externalIcons.length, 1)
+  assert.ok(env.findAll(previewTree, n => Object.hasOwn(n.props || {}, 'data-dsh-serif')).length >= 1)
 
-  // Simulate portaled dialog outer element and verify createOverlaySyncRef + live style sync
+  // Simulate portaled dialog outer element and verify createOverlaySyncRef + live style & font sync
   const outerDialogDom = env.makeDomElement('div', { role: 'dialog' })
   const innerDialogDom = env.makeDomElement('div', {}, outerDialogDom)
 
@@ -363,9 +375,10 @@ test('5-style theme switcher syncs localStorage, dsh-stardust-style events, and 
   assert.ok(frameNode)
   frameNode.props.ref(innerDialogDom)
   assert.equal(outerDialogDom.getAttribute('data-dsh-style'), 'harness')
+  assert.equal(outerDialogDom.getAttribute('data-dsh-font'), 'arcade')
   assert.equal(outerDialogDom.getAttribute('data-window-drag-exclude'), '')
 
-  for (const styleId of ['cream', 'claude', 'pixel8bit', 'mint', 'harness']) {
+  for (const styleId of ['cream', 'claude', 'pixel8bit', 'mint', 'glass', 'eink', 'blueprint', 'risograph', 'win98', 'songhui', 'frutiger', 'gazette', 'harness']) {
     env.resetState()
     const applied = W.writeDshStyle(styleId)
     assert.equal(applied, styleId)
@@ -377,12 +390,28 @@ test('5-style theme switcher syncs localStorage, dsh-stardust-style events, and 
       env.React.createElement(W.Page, { workbench: true, title: 'RSS 订阅', icon: 'rss' }, 'content'),
     ))
     assert.equal(page.props['data-dsh-style'], styleId)
+    assert.equal(page.props['data-dsh-font'], 'arcade')
+  }
+
+  for (const fontId of ['auto', 'songkai', 'fangsong', 'poster', 'retro98', 'serif', 'modern', 'arcade']) {
+    env.resetState()
+    const appliedFont = W.writeDshFont(fontId)
+    assert.equal(appliedFont, fontId)
+    assert.equal(env.storage.get('dsh-stardust:ui-font'), fontId)
+    assert.equal(env.mockDocument.documentElement.getAttribute('data-dsh-font'), fontId)
+    assert.equal(outerDialogDom.getAttribute('data-dsh-font'), fontId)
+    assert.equal(env.dispatchedEvents.at(-1)?.detail?.font, fontId)
+
+    const page = env.expand(env.renderTree(() =>
+      env.React.createElement(W.Page, { workbench: true, title: 'RSS 订阅', icon: 'rss' }, 'content'),
+    ))
+    assert.equal(page.props['data-dsh-font'], fontId)
   }
 
   env.cleanup()
 })
 
-test('Bundled CSS & client output preserve [data-plugin-update-footer], soft slate dark mode, 8-bit press, and reduced motion', () => {
+test('Bundled CSS & client output preserve [data-plugin-update-footer], soft slate dark mode, 13 themes, 8 fonts, and v3 primitives', () => {
   const rawBundle = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8')
   const env = createMockEnv({ withHostPrimitives: false })
   const css = env.client.probe.W.styles
@@ -393,11 +422,28 @@ test('Bundled CSS & client output preserve [data-plugin-update-footer], soft sla
   assert.match(cssRules, /body\[data-ds-dark-theme\][\s\S]*?#272c36/i)
   assert.doesNotMatch(cssRules, /#090a0f|#0b0d13|#000000/i)
 
-  for (const preset of ['harness', 'cream', 'claude', 'pixel8bit', 'mint']) {
+  for (const preset of ['harness', 'cream', 'claude', 'pixel8bit', 'mint', 'glass', 'eink', 'blueprint', 'risograph', 'win98', 'songhui', 'frutiger', 'gazette']) {
     assert.ok(cssRules.includes(`[data-dsh-style="${preset}"]`), `missing CSS scope for ${preset}`)
   }
+  assert.match(cssRules, /#f6f3ec/i, 'gazette newsprint base')
+  assert.match(cssRules, /4px double #161514/i, 'gazette masthead double rule')
+  assert.match(cssRules, /#9b1c1c/i, 'gazette crimson seal accent')
+  assert.match(cssRules, /--dsh-font-display:/)
+  assert.match(cssRules, /--dsh-font-body:/)
+  assert.match(cssRules, /--dsh-font-mono:/)
+  for (const fontId of ['songkai', 'fangsong', 'poster', 'retro98', 'serif', 'arcade', 'modern']) {
+    assert.ok(cssRules.includes(`[data-dsh-font="${fontId}"]`), `missing CSS font override for ${fontId}`)
+  }
+  assert.match(cssRules, /\.dsh-style-switcher/)
+  assert.match(cssRules, /\.dsh-font-trigger/)
+  assert.match(cssRules, /\.dsh-font-glyph/)
   assert.match(cssRules, /translate:\s*1px 1px/i)
   assert.match(cssRules, /steps\(2,\s*end\)/i)
+  assert.match(cssRules, /\.dsh-header/)
+  assert.match(cssRules, /\.dsh-tab-indicator/)
+  assert.match(cssRules, /\.dsh-split-resizer/)
+  assert.match(cssRules, /\.dsh-skeleton/)
+  assert.match(cssRules, /\.dsh-row-actions/)
   assert.match(cssRules, /--dsh-frame-top-clearance/)
   assert.match(cssRules, /--dsh-frame-leading-clearance/)
   assert.match(cssRules, /\[data-window-drag-exclude\]\s*\{\s*-webkit-app-region:\s*no-drag/)
@@ -414,6 +460,7 @@ test('Bundled CSS & client output preserve [data-plugin-update-footer], soft sla
   // Verify build-updates.mjs injected __stardustUpdatesInlinePage & [data-plugin-update-footer]
   assert.ok(rawBundle.includes('data-plugin-update-footer'))
   assert.ok(rawBundle.includes('__stardustUpdatesInlinePage'))
+  assert.match(cssRules, /\[data-plugin-update-footer\][\s\S]*?min-height:\s*32px/)
   env.cleanup()
 })
 
@@ -421,10 +468,12 @@ test('HostMenuWithStyle portal sync & Cordis 4 ctx.effect unload cleanup work cl
   const env = createMockEnv({ withHostPrimitives: true })
   const { W } = env.client.probe
   W.writeDshStyle('mint')
+  W.writeDshFont('songkai')
   const P = W.primitives()
   const openMenu = env.expand(env.React.createElement(P.Menu, {
     open: true,
     dshStyle: 'mint',
+    dshFont: 'songkai',
     items: [{ id: 'a', label: 'A' }],
     anchor: env.React.createElement('button', null, 'Open'),
   }))
@@ -434,6 +483,7 @@ test('HostMenuWithStyle portal sync & Cordis 4 ctx.effect unload cleanup work cl
   const innerSpanDom = env.makeDomElement('span', {}, outerMenuDom)
   syncSpan.props.ref(innerSpanDom)
   assert.equal(outerMenuDom.getAttribute('data-dsh-style'), 'mint')
+  assert.equal(outerMenuDom.getAttribute('data-dsh-font'), 'songkai')
   assert.equal(outerMenuDom.getAttribute('data-window-drag-exclude'), '')
   env.cleanup()
 
@@ -621,5 +671,128 @@ test('My feeds 1-click AI briefing prompts & interactive CoachmarkTour (? 引导
     assert.ok(env.findAll(panelTree, n => n.props?.id === lbl.props.htmlFor)[0])
   }
 
+  env.cleanup()
+})
+
+test('UI v3 unified 48px header, sliding tabs, resizable split pane, shimmer skeletons, serif materiality, and row quick actions', () => {
+  const env = createMockEnv({ withHostPrimitives: false })
+  const { W, Panel, RssFeedBrowser, RssArticlePreview } = env.client.probe
+
+  // 1. Unified 48px single-row header with inline tabs and shimmer skeleton during initial load
+  env.resetState()
+  const initialTree = env.renderTree(() => env.React.createElement(Panel, { workbench: true }))
+  const header = env.findAll(initialTree, n => n.type === 'header' && Object.hasOwn(n.props || {}, 'data-dsh-header'))[0]
+  assert.ok(header, 'renders unified .dsh-header')
+  assert.equal(env.findAll(initialTree, n => String(n.props?.className || '').includes('dsh-wb-subtitle')).length, 0, 'subtitle row removed')
+  assert.ok(env.findAll(header, n => String(n.props?.className || '').includes('dsh-tab-indicator')).length === 1, 'renders sliding tab indicator')
+  assert.ok(env.findAll(initialTree, n => Object.hasOwn(n.props || {}, 'data-dsh-tab-panel')).length === 1, 'renders .dsh-tab-panel')
+  assert.ok(env.findAll(initialTree, n => Object.hasOwn(n.props || {}, 'data-dsh-skeleton')).length >= 3, 'renders DshSkeleton during initial loading')
+
+  // 2. Article preview skeleton during preview fetch
+  const loadingPreview = env.expand(env.React.createElement(RssArticlePreview, { value: null, loading: true }))
+  assert.ok(env.findAll(loadingPreview, n => Object.hasOwn(n.props || {}, 'data-dsh-skeleton')).length >= 3, 'renders DshSkeleton while fetching recent articles')
+
+  // 3. Resizable split pane + row hover quick actions + pixel cursor + [data-dsh-serif]
+  const sampleFeed = {
+    id: 'feed-1',
+    name: '少数派',
+    url: 'https://sspai.com/feed',
+    category: '科技',
+    check: { ok: true, entryCount: 12, checkedAt: '2026-11-17T12:00:00Z' },
+  }
+  const calls = []
+  const opened = []
+  const renderBrowser = (busy = '') => env.rerenderTree(() =>
+    env.React.createElement(RssFeedBrowser, {
+      feeds: [sampleFeed],
+      filtered: [sampleFeed],
+      categories: ['科技'],
+      query: '',
+      setQuery() {},
+      category: '*',
+      setCategory() {},
+      writable: true,
+      busy,
+      run: (act, args) => calls.push([act, args?.id]),
+      open: (type, feed) => opened.push([type, feed?.id]),
+      setNotice() {},
+    }),
+  )
+  env.resetState()
+  let browserTree = env.renderTree(() =>
+    env.React.createElement(RssFeedBrowser, {
+      feeds: [sampleFeed],
+      filtered: [sampleFeed],
+      categories: ['科技'],
+      query: '',
+      setQuery() {},
+      category: '*',
+      setCategory() {},
+      writable: true,
+      busy: 'load',
+      run: (act, args) => calls.push([act, args?.id]),
+      open: (type, feed) => opened.push([type, feed?.id]),
+      setNotice() {},
+    }),
+  )
+  assert.ok(env.findAll(browserTree, n => Object.hasOwn(n.props || {}, 'data-dsh-skeleton')).length >= 1, 'renders refresh shimmer skeleton when busy=load')
+
+  const resizer = env.findAll(browserTree, n => n.props?.role === 'separator' && Object.hasOwn(n.props || {}, 'data-dsh-resizer'))[0]
+  assert.ok(resizer, 'renders DshSplitResizer separator')
+  assert.equal(resizer.props['aria-valuenow'], 380)
+  resizer.props.onKeyDown({ key: 'ArrowLeft', preventDefault() {} })
+  browserTree = renderBrowser()
+  const updatedResizer = env.findAll(browserTree, n => n.props?.role === 'separator' && Object.hasOwn(n.props || {}, 'data-dsh-resizer'))[0]
+  assert.equal(updatedResizer.props['aria-valuenow'], 364)
+  assert.equal(env.storage.get('dsh-rss:feeds-split-width'), '364')
+  updatedResizer.props.onDoubleClick()
+  browserTree = renderBrowser()
+  assert.equal(env.storage.get('dsh-rss:feeds-split-width'), '380')
+
+  const quickPreview = env.findAll(browserTree, n => n.type === 'button' && n.props?.['data-rss-quick-action'] === 'preview')[0]
+  const quickEdit = env.findAll(browserTree, n => n.type === 'button' && n.props?.['data-rss-quick-action'] === 'edit')[0]
+  const quickRemove = env.findAll(browserTree, n => n.type === 'button' && n.props?.['data-rss-quick-action'] === 'remove')[0]
+  assert.ok(quickPreview && quickEdit && quickRemove, 'renders row hover quick actions for preview, edit, and remove')
+  quickPreview.props.onClick()
+  quickEdit.props.onClick()
+  quickRemove.props.onClick()
+  assert.deepEqual(calls, [['previewFeed', 'feed-1']])
+  assert.deepEqual(opened, [['feed', 'feed-1'], ['remove', 'feed-1']])
+
+  assert.ok(env.findAll(browserTree, n => n.props?.className === 'dsh-pixel-cursor').length >= 1, 'renders pixel8bit active cursor')
+  assert.ok(env.findAll(browserTree, n => Object.hasOwn(n.props || {}, 'data-dsh-serif')).length >= 2, 'stamps [data-dsh-serif] on feed row & detail title')
+
+  env.cleanup()
+})
+
+test('CoachmarkTour measure() safely escapes React.useId() colon selectors without throwing SyntaxError', () => {
+  const env = createMockEnv({ withHostPrimitives: false })
+  const { W } = env.client.probe
+  const queried = []
+  let capturedLayout = null
+  const fakeTarget = { getBoundingClientRect: () => ({ left: 160, top: 14, width: 96, height: 32 }) }
+  const rootRef = {
+    current: {
+      querySelector(sel) {
+        queried.push(sel)
+        if (sel.startsWith('#:')) throw new SyntaxError(`Failed to execute 'querySelector': '${sel}' is not a valid selector`)
+        if (sel === '[id=":r22:-tabs-tab-catalog"]') return fakeTarget
+        return null
+      },
+    },
+  }
+  env.renderTree(() =>
+    env.React.createElement(W.CoachmarkTour, {
+      rootRef,
+      steps: [{ id: 'catalog', selector: '#:r22:-tabs-tab-catalog', side: 'bottom', title: 'T', desc: 'D' }],
+      step: 0,
+      manual: true,
+      style: 'gazette',
+      font: 'arcade',
+      setLayout: layout => { capturedLayout = layout },
+    }),
+  )
+  assert.deepEqual(queried, ['#:r22:-tabs-tab-catalog', '[id=":r22:-tabs-tab-catalog"]'])
+  assert.ok(capturedLayout?.spotlight, 'resolves spotlight bounds via escaped [id="..."] selector')
   env.cleanup()
 })

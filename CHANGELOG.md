@@ -1,5 +1,16 @@
 # 更新记录
 
+## 0.11.0 (2026-11-18)
+
+- **Workbench UI v3 + 13 套明亮工作台主题 + 8 套双层中英字体搭配**：
+  - 统一 48px 单行顶栏、滑动标签指示器、可拖拽记忆宽度的分栏分割线、主题色微光骨架屏与订阅行悬浮快捷操作（检查并预览 / 编辑 / 移除）。
+  - 扩展至 **13 套明亮主题**（新增晴昼琉璃、护眼墨水屏、工程晒图、波普孔版、千禧复古、宋韵朱砂、晴空水晶、铅字晨报 `gazette`）与 **8 套 Windows 验证双层中英字体搭配**（默认 `arcade` 幼圆等宽 `Cascadia Code + YouYuan`，支持 `auto` 跟随风格专属字、`songkai`、`fangsong`、`poster`、`retro98`、`serif`、`modern` 独立切换与弹层同步）。
+  - 修复 `CoachmarkTour` 对带冒号 `React.useId()` 选择器的安全转义。
+- **Workbench UI v3 + 13 Bright Themes + 8 Dual-Layer Chinese/Latin Font Pairings**:
+  - Unified 48px single-row header, sliding tab indicator, persistent resizable split panes, theme-tinted shimmer skeletons, and row hover quick actions (Preview / Edit / Remove).
+  - Expanded to **13 bright presets** (`harness`, `cream`, `claude`, `pixel8bit`, `mint`, `glass`, `eink`, `blueprint`, `risograph`, `win98`, `songhui`, `frutiger`, `gazette`) and **8 Windows-verified dual-layer font pairings** with `arcade` (YouYuan Mono) as default and independent `[data-dsh-font]` switcher synced across portaled menus and dialogs.
+  - Safely escape colon-containing `React.useId()` selectors in `CoachmarkTour`.
+
 ## 0.10.7 (2026-11-18)
 
 - 升级共享更新组件至 `@stardustlc/dsh-updates@0.2.5`：独立安装插件详情页底栏去重（保留组合包组件委派与对话页热更新卡片），补齐 `bundle-in-use` 组合包占用提示说明，并在检查结果过期或远端版本变更时自动刷新元数据，彻底消除 `check-first` 卡顿。

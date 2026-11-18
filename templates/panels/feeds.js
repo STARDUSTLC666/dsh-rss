@@ -2,10 +2,11 @@ function rssText(zh, en) {
   return language === 'en' ? en : zh;
 }
 
-function RssExternalLink({ href, children, className }) {
+function RssExternalLink({ href, children, className, ...props }) {
   return h(
     'a',
     {
+      ...props,
       className: ['rss-ext-link', className].filter(Boolean).join(' '),
       href,
       target: '_blank',
@@ -16,12 +17,18 @@ function RssExternalLink({ href, children, className }) {
   );
 }
 
-function RssArticlePreview({ value }) {
+function RssArticlePreview({ value, loading = false }) {
   return h(
     'section',
     { className: 'rss-section rss-articles' },
     h('h3', null, t('recentArticles')),
-    !value
+    loading
+      ? h(
+          'div',
+          { className: 'rss-preview-skeleton' },
+          [0, 1, 2].map(i => h(W.Skeleton, { key: i, variant: 'card', label: i === 0 ? rssText('正在获取近期文章…', 'Fetching recent entries…') : undefined })),
+        )
+      : !value
       ? h(
           'p',
           { className: 'rss-muted' },
@@ -41,10 +48,10 @@ function RssArticlePreview({ value }) {
                 value.entries.map((entry, index) =>
                   h(
                     'li',
-                    { key: index, className: 'rss-article-item', 'data-dsh-row': '' },
+                    { key: index, className: 'rss-article-item', 'data-dsh-row': '', 'data-dsh-card': '' },
                     entry.link
-                      ? h(RssExternalLink, { href: entry.link, className: 'rss-article-link' }, entry.title || t('noTitle'))
-                      : h('strong', null, entry.title || t('noTitle')),
+                      ? h(RssExternalLink, { href: entry.link, className: 'rss-article-link', 'data-dsh-serif': '' }, entry.title || t('noTitle'))
+                      : h('strong', { 'data-dsh-serif': '' }, entry.title || t('noTitle')),
                     entry.pubDate && !Number.isNaN(Date.parse(entry.pubDate))
                       ? h(
                           'p',
@@ -138,6 +145,10 @@ function RssFeedBrowser({
     onBack: () => setActiveId(null),
     backLabel: rssText('返回订阅列表', 'Back to feeds'),
     listWidth: 380,
+    splitKey: 'dsh-rss:feeds-split-width',
+    minWidth: 260,
+    maxWidth: 560,
+    resizerLabel: rssText('调整订阅列表宽度', 'Resize feeds list'),
     list: h(
       'div',
       { className: 'rss-master-pane' },
@@ -195,6 +206,13 @@ function RssFeedBrowser({
             : null,
         ),
       ),
+      busy === 'load'
+        ? h(
+            'div',
+            { className: 'rss-refresh-skeleton' },
+            h(W.Skeleton, { variant: 'row', label: t('refresh') }),
+          )
+        : null,
       filtered.map(feed =>
         h(W.Row, {
           key: feed.id,
@@ -205,6 +223,38 @@ function RssFeedBrowser({
           status: feed.check ? t(feed.check.ok ? 'checked' : 'failed') : t('pending'),
           statusTone: feed.check ? (feed.check.ok ? 'success' : 'error') : undefined,
           onClick: () => setActiveId(feed.id),
+          actions: h(
+            React.Fragment,
+            null,
+            h(W.IconButton, {
+              icon: 'refresh',
+              spinning: busy === 'previewFeed' && active?.id === feed.id,
+              disabled: !!busy,
+              label: rssText('检查并预览', 'Check and preview'),
+              'data-rss-quick-action': 'preview',
+              onClick: () => {
+                setActiveId(feed.id);
+                run('previewFeed', { id: feed.id }, value =>
+                  setPreviews(old => ({ ...old, [feed.id]: value.feedPreview })),
+                );
+              },
+            }),
+            h(W.IconButton, {
+              icon: 'edit',
+              disabled: !writable || !!busy,
+              label: t('edit'),
+              'data-rss-quick-action': 'edit',
+              onClick: event => open('feed', feed, event),
+            }),
+            h(W.IconButton, {
+              icon: 'trash',
+              variant: 'danger',
+              disabled: !writable || !!busy,
+              label: t('remove'),
+              'data-rss-quick-action': 'remove',
+              onClick: event => open('remove', feed, event),
+            }),
+          ),
         }),
       ),
       !filtered.length
@@ -229,7 +279,7 @@ function RssFeedBrowser({
       ? h(
           'article',
           { className: 'rss-feed-detail' },
-          h('h2', { className: 'rss-detail-title', 'data-dsh-editorial-heading': '' }, active.name || active.url),
+          h('h2', { className: 'rss-detail-title', 'data-dsh-editorial-heading': '', 'data-dsh-serif': '' }, active.name || active.url),
           h('p', { className: 'rss-url' }, active.url),
           h(
             'div',
@@ -292,7 +342,7 @@ function RssFeedBrowser({
               }),
             ),
           ),
-          h(RssArticlePreview, { value: previews[active.id] }),
+          h(RssArticlePreview, { value: previews[active.id], loading: busy === 'previewFeed' }),
           h(
             W.Details,
             { summary: rssText('来源检查', 'Source check'), className: 'rss-check-details' },
@@ -355,6 +405,10 @@ function RssCatalog({
     onBack: () => setActiveId(null),
     backLabel: rssText('返回来源目录', 'Back to source catalog'),
     listWidth: 380,
+    splitKey: 'dsh-rss:catalog-split-width',
+    minWidth: 260,
+    maxWidth: 560,
+    resizerLabel: rssText('调整来源列表宽度', 'Resize sources list'),
     list: h(
       'div',
       { className: 'rss-master-pane' },
@@ -415,6 +469,35 @@ function RssCatalog({
           status: source.subscribed ? t('subscribed') : undefined,
           statusTone: source.subscribed ? 'success' : undefined,
           onClick: () => setActiveId(source.id),
+          actions: h(
+            React.Fragment,
+            null,
+            h(W.IconButton, {
+              icon: 'refresh',
+              spinning: busy === 'previewSource' && active?.id === source.id,
+              disabled: !!busy,
+              label: t('previewArticles'),
+              'data-rss-quick-action': 'preview',
+              onClick: () => {
+                setActiveId(source.id);
+                run('previewSource', { sourceId: source.id }, value =>
+                  setPreviews(old => ({ ...old, [source.id]: value.sourcePreview })),
+                );
+              },
+            }),
+            h(W.IconButton, {
+              icon: source.subscribed ? 'check' : 'plus',
+              disabled: !writable || !!busy || source.subscribed,
+              label: source.subscribed ? t('subscribed') : t('subscribe'),
+              'data-rss-quick-action': 'subscribe',
+              onClick: () =>
+                run(
+                  'add',
+                  { url: source.url, name: source.name, category: categoryOf(source), revision: state.revision },
+                  () => setNotice(t('saved') + ' · ' + source.name),
+                ),
+            }),
+          ),
         }),
       ),
       !sources.length
@@ -443,7 +526,7 @@ function RssCatalog({
       ? h(
           'article',
           { className: 'rss-feed-detail' },
-          h('h2', { className: 'rss-detail-title', 'data-dsh-editorial-heading': '' }, active.name),
+          h('h2', { className: 'rss-detail-title', 'data-dsh-editorial-heading': '', 'data-dsh-serif': '' }, active.name),
           h(
             'p',
             { className: 'rss-muted' },
@@ -489,7 +572,7 @@ function RssCatalog({
               ),
             ),
           ),
-          h(RssArticlePreview, { value: previews[active.id] }),
+          h(RssArticlePreview, { value: previews[active.id], loading: busy === 'previewSource' }),
           h(
             'section',
             { className: 'rss-section' },
@@ -535,6 +618,43 @@ const RSS_WORKBENCH_CSS = `
   display: flex;
   flex-direction: column;
   gap: 12px;
+  max-width: 72ch;
+}
+
+.rss-workbench .rss-skeleton-split {
+  flex: 1;
+  min-height: 0;
+}
+
+.rss-workbench .rss-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-inline-end: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
+}
+
+.rss-workbench .rss-skeleton-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 24px;
+}
+
+.rss-workbench .rss-refresh-skeleton {
+  padding: 4px 8px;
+  border-block-end: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
+}
+
+.rss-workbench .rss-preview-skeleton {
+  display: grid;
+  gap: 8px;
+  margin-block-start: 6px;
+}
+
+[data-dsh-style="eink"] .rss-workbench .rss-article-item {
+  padding: 12px 14px;
+  line-height: 1.65;
 }
 
 .rss-workbench .rss-detail-title {
@@ -549,7 +669,7 @@ const RSS_WORKBENCH_CSS = `
 .rss-workbench .rss-url,
 .rss-dialog-url {
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-family: var(--dsh-font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
   font-size: 12px;
   color: var(--w-muted);
   overflow-wrap: anywhere;

@@ -1,6 +1,9 @@
-/* DSH Workbench UI v2 — DeepSeek Harness (>=0.2.2-rc.3) Host Primitives,
- * 5-Style Theme Switcher (`harness`, `cream`, `claude`, `pixel8bit`, `mint`),
- * Never-Too-Dark Soft Slate Adaptation, and Tactile Micro-Motion.
+/* DSH Workbench UI v3 — DeepSeek Harness (>=0.2.2-rc.3) Host Primitives,
+ * 13-Style Theme Switcher (`harness`, `cream`, `claude`, `pixel8bit`, `mint`,
+ * `glass`, `eink`, `blueprint`, `risograph`, `win98`, `songhui`, `frutiger`, `gazette`),
+ * 8 Font Pairings (`arcade` default, `auto`, `songkai`, `fangsong`, `poster`, `retro98`, `serif`, `modern`),
+ * Unified 48px Single-Row Header, Sliding Tab Indicator, Resizable Split Panes,
+ * Theme-Tinted Shimmer Skeletons, Row Hover Quick Actions, and Calm Update Strip.
  */
 function createWorkbenchUI(React, require) {
   const h = React.createElement;
@@ -19,6 +22,9 @@ function createWorkbenchUI(React, require) {
   // Lazy host primitive resolution: NEVER call require('@deepseek-ai/dsh-client-ui-primitives') eagerly!
   const primitives = () => resolveHostPrimitives(React, require);
   const StyleSwitcher = createStyleSwitcherComponent(React, require);
+  const FontSwitcher = createFontSwitcherComponent(React, require);
+  const DshSplitResizer = createSplitResizerComponent(React);
+  const Skeleton = createSkeletonComponent(React);
 
   const WORKBENCH_ICON_PATHS = Object.freeze({
     ...DSH_ICON_PATHS,
@@ -94,10 +100,28 @@ function createWorkbenchUI(React, require) {
     });
   }
 
-  function Checkbox({ label, checked = false, onChange, hiddenLabel = false, disabled = false, className, ...props }) {
+  function Checkbox({ label, checked = false, onChange, hiddenLabel = false, disabled = false, className, id, ...props }) {
     const P = primitives();
+    const fallbackId = useSafeId('dsh-wb-chk');
+    const inputId = id || fallbackId;
+    if (P.isFallback) {
+      return h(
+        'label',
+        { htmlFor: inputId, className: cx('dsh-wb-checkbox', hiddenLabel && 'dsh-wb-checkbox-hidden', className), title: props.title },
+        h('input', {
+          ...props,
+          id: inputId,
+          type: 'checkbox',
+          checked: Boolean(checked),
+          disabled: Boolean(disabled),
+          onChange: event => onChange?.(Boolean(event?.target?.checked)),
+        }),
+        h('span', null, label),
+      );
+    }
     return h(P.Checkbox, {
       ...props,
+      id: inputId,
       checked: Boolean(checked),
       disabled: Boolean(disabled),
       label,
@@ -142,6 +166,7 @@ function createWorkbenchUI(React, require) {
   }) {
     const [open, setOpen] = useSafeState(false);
     const [style] = useDshStyle(React);
+    const [font] = useDshFont(React);
     const P = primitives();
     const currentValue = String(value ?? '');
     const selected = items.find(item => String(item.id) === currentValue);
@@ -152,6 +177,7 @@ function createWorkbenchUI(React, require) {
         open: Boolean(open && !disabled),
         selectedId: currentValue,
         dshStyle: style,
+        dshFont: font,
         items: items.map(item => ({ ...item, id: String(item.id) })),
         align,
         portal: !P.isFallback,
@@ -305,6 +331,7 @@ function createWorkbenchUI(React, require) {
     step = 0,
     manual = false,
     style = 'harness',
+    font = DSH_DEFAULT_FONT,
     lang = 'zh',
     layout: rawLayout,
     setLayout,
@@ -344,12 +371,29 @@ function createWorkbenchUI(React, require) {
       };
     }, []);
 
+    function queryTourTarget(scope, selector) {
+      if (!scope || !selector || typeof scope.querySelector !== 'function') return null;
+      try {
+        return scope.querySelector(selector);
+      } catch {
+        try {
+          const escaped = String(selector).replace(/(^|[\s,>+~(])#([^\s,>+~()[\]]+)/g, (_, prefix, id) => {
+            const esc = typeof CSS !== 'undefined' && typeof CSS.escape === 'function' ? CSS.escape(id) : null;
+            return prefix + (esc ? '#' + esc : '[id="' + id.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"]');
+          });
+          return scope.querySelector(escaped);
+        } catch {
+          return null;
+        }
+      }
+    }
+
     useSafeEffect(() => {
       function measure() {
         const scope = rootRef?.current || (typeof document !== 'undefined' ? document : null);
         if (!scope || typeof scope.querySelector !== 'function') return;
-        const target = (current.selector && scope.querySelector(current.selector))
-          || (current.fallback && scope.querySelector(current.fallback))
+        const target = queryTourTarget(scope, current.selector)
+          || queryTourTarget(scope, current.fallback)
           || null;
         setLayout?.(computeTourLayout(target, current.side, cardRef.current));
       }
@@ -413,6 +457,7 @@ function createWorkbenchUI(React, require) {
         ref: layerRef,
         className: 'dsh-wb-tour-layer',
         'data-dsh-style': style,
+        'data-dsh-font': normalizeDshFont(font),
         'data-wb-tour': current.id || String(step),
         'data-window-drag-exclude': '',
       },
@@ -541,7 +586,9 @@ function createWorkbenchUI(React, require) {
     className,
     rootRef: externalRootRef,
     style: controlledStyle,
+    font: controlledFont,
     onStyleChange,
+    onFontChange,
     styleSwitcherId,
     tourSteps = null,
     tourStorageKey = 'dsh-wb.tour.v1',
@@ -550,7 +597,9 @@ function createWorkbenchUI(React, require) {
     ...props
   }) {
     const [syncedStyle, setSyncedStyle] = useDshStyle(React);
+    const [syncedFont, setSyncedFont] = useDshFont(React);
     const activeStyle = normalizeDshStyle(controlledStyle ?? syncedStyle);
+    const activeFont = normalizeDshFont(controlledFont ?? syncedFont);
     const pageRootRef = useSafeRef(null);
     const triggerRef = useSafeRef(null);
     const [tour, setTour] = useSafeState({ open: false, step: 0, manual: false });
@@ -604,27 +653,27 @@ function createWorkbenchUI(React, require) {
         ref: bindPageRef,
         className: cx('dsh-wb-page', !workbench && 'dsh-wb-embedded', className),
         'data-dsh-style': activeStyle,
+        'data-dsh-font': activeFont,
         'data-main': workbench ? 'true' : 'false',
       },
       h(Styles, { key: 'dsh-wb-styles' }),
       h(
         'header',
-        { className: 'dsh-wb-header' },
+        { className: 'dsh-wb-header dsh-header', 'data-dsh-header': '' },
         h(
           'div',
-          { className: 'dsh-wb-heading' },
+          { className: 'dsh-header-leading' },
           h(
-            'h1',
-            { className: 'dsh-wb-title', 'data-dsh-editorial-heading': '' },
-            h('span', { className: 'dsh-wb-brand', 'aria-hidden': 'true' }, h(Icon, { name: icon, size: 16 })),
-            h('span', null, title),
+            'div',
+            { className: 'dsh-header-brand' },
+            h('span', { className: 'dsh-header-badge dsh-wb-brand', 'aria-hidden': 'true' }, h(Icon, { name: icon, size: 14 })),
+            h('h1', { className: 'dsh-header-title dsh-wb-title', 'data-dsh-editorial-heading': '' }, title),
           ),
-          subtitle ? h('p', { className: 'dsh-wb-subtitle' }, subtitle) : null,
+          navigation ? h('div', { className: 'dsh-header-tabs' }, navigation) : null,
         ),
-        navigation,
         h(
           'div',
-          { className: 'dsh-wb-header-actions', 'data-window-drag-exclude': '' },
+          { className: 'dsh-header-actions dsh-wb-header-actions', 'data-window-drag-exclude': '' },
           actions,
           hasTour
             ? h(
@@ -646,11 +695,17 @@ function createWorkbenchUI(React, require) {
           h(StyleSwitcher, {
             id: styleSwitcherId,
             style: activeStyle,
+            font: activeFont,
+            showFontSwitcher: true,
             lang,
             compact: true,
             onChange: next => {
               setSyncedStyle(next);
               onStyleChange?.(next);
+            },
+            onFontChange: next => {
+              setSyncedFont(next);
+              onFontChange?.(next);
             },
           }),
         ),
@@ -664,6 +719,7 @@ function createWorkbenchUI(React, require) {
             step: tour.step,
             manual: tour.manual,
             style: activeStyle,
+            font: activeFont,
             lang,
             layout: tourLayout,
             setLayout: setTourLayout,
@@ -678,6 +734,8 @@ function createWorkbenchUI(React, require) {
   function Tabs({ items = [], value, onChange, label, id: customId, children, footer, className }) {
     const baseId = customId || useSafeId('dsh-wb-tabs');
     const active = items.some(item => item.id === value) ? value : items[0]?.id;
+    const itemKey = items.map(item => `${item.id}:${item.count ?? ''}`).join('|');
+    const tabs = useSlidingTabIndicator(React, active, { deps: [itemKey] });
     function onKeyDown(event, index) {
       if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
       event.preventDefault?.();
@@ -694,7 +752,12 @@ function createWorkbenchUI(React, require) {
     }
     const tablist = h(
       'div',
-      { className: cx('dsh-wb-tabs', className), role: 'tablist', 'aria-label': label },
+      {
+        ...tabs.tablistProps,
+        className: cx('dsh-wb-tabs', 'dsh-tablist', 'dsh-tablist-pill', className),
+        role: 'tablist',
+        'aria-label': label,
+      },
       items.map((item, index) =>
         h(
           Button,
@@ -715,6 +778,7 @@ function createWorkbenchUI(React, require) {
           item.count !== undefined ? h('span', { className: 'dsh-wb-count' }, item.count) : null,
         ),
       ),
+      h('span', tabs.indicatorProps),
     );
     if (children === undefined && footer === undefined) return tablist;
     return h(
@@ -724,7 +788,9 @@ function createWorkbenchUI(React, require) {
       h(
         'div',
         {
-          className: 'dsh-wb-tab-panel',
+          key: active,
+          className: 'dsh-wb-tab-panel dsh-tab-panel',
+          'data-dsh-tab-panel': '',
           id: baseId + '-panel',
           role: 'tabpanel',
           'aria-labelledby': baseId + '-tab-' + active,
@@ -732,6 +798,20 @@ function createWorkbenchUI(React, require) {
         children,
         footer,
       ),
+    );
+  }
+
+  function TabPanel({ id, activeTab, children, className }) {
+    return h(
+      'div',
+      {
+        className: cx('dsh-wb-tab-panel', 'dsh-tab-panel', className),
+        'data-dsh-tab-panel': '',
+        id: id + '-panel',
+        role: 'tabpanel',
+        'aria-labelledby': id + '-tab-' + activeTab,
+      },
+      children,
     );
   }
 
@@ -762,8 +842,26 @@ function createWorkbenchUI(React, require) {
     );
   }
 
-  function Split({ list, detail, selected, onBack, backLabel, className, listWidth = 360 }) {
+  function Split({
+    list,
+    detail,
+    selected,
+    onBack,
+    backLabel,
+    className,
+    listWidth = 360,
+    splitKey,
+    minWidth = 240,
+    maxWidth = 560,
+    resizerLabel = 'Resize list pane',
+  }) {
     const ref = useSafeRef(null);
+    const split = useResizableSplit(React, {
+      key: splitKey,
+      initial: listWidth,
+      min: minWidth,
+      max: maxWidth,
+    });
     useSafeEffect(() => {
       if (!selected || !ref.current || !(ref.current.clientWidth <= 760)) return;
       const heading = ref.current.querySelector?.('.dsh-wb-detail h2');
@@ -776,14 +874,15 @@ function createWorkbenchUI(React, require) {
       'div',
       {
         ref,
-        className: cx('dsh-wb-split', className),
+        className: cx('dsh-wb-split', 'dsh-split-pane', className),
         'data-selected': selected ? 'true' : 'false',
-        style: { '--dsh-list-width': listWidth + 'px' },
+        style: { ...split.paneStyle, '--dsh-list-width': split.size + 'px' },
       },
-      h('div', { className: 'dsh-wb-master' }, list),
+      h('div', { className: 'dsh-wb-master dsh-split-leading' }, list),
+      h(DshSplitResizer, { ...split.resizerProps, label: resizerLabel }),
       h(
         'div',
-        { className: 'dsh-wb-detail' },
+        { className: 'dsh-wb-detail dsh-split-trailing' },
         selected
           ? h(
               Button,
@@ -796,12 +895,13 @@ function createWorkbenchUI(React, require) {
     );
   }
 
-  function Row({ title, meta, description, active, onClick, children, status, statusTone, className, disabled }) {
+  function Row({ title, meta, description, active, onClick, children, actions, status, statusTone, className, disabled, serif = true }) {
     return h(
       'div',
       {
         className: cx('dsh-wb-row', 'dsh-row', active && 'is-selected', className),
         'data-dsh-row': '',
+        'data-active': active ? 'true' : 'false',
         'data-selected': active ? 'true' : 'false',
       },
       children ? h('div', { className: 'dsh-wb-row-select' }, children) : null,
@@ -817,12 +917,18 @@ function createWorkbenchUI(React, require) {
         h(
           'span',
           { className: 'dsh-wb-row-head' },
-          h('strong', null, title),
+          h(
+            'span',
+            { className: 'dsh-wb-row-title-wrap' },
+            h('span', { className: 'dsh-pixel-cursor', 'aria-hidden': 'true' }, '▶'),
+            h('strong', serif ? { 'data-dsh-serif': '' } : null, title),
+          ),
           status ? h('span', { className: 'dsh-wb-tag', 'data-tone': statusTone }, status) : null,
         ),
         meta ? h('span', { className: 'dsh-wb-row-meta' }, meta) : null,
         description ? h('span', { className: 'dsh-wb-row-desc' }, description) : null,
       ),
+      actions ? h('div', { className: 'dsh-row-actions', 'data-window-drag-exclude': '' }, actions) : null,
     );
   }
 
@@ -950,6 +1056,7 @@ function createWorkbenchUI(React, require) {
 
   function Dialog({ title, children, onClose, closeLabel = 'Close', className, busy = false, footer, tone, wide = false }) {
     const [style] = useDshStyle(React);
+    const [font] = useDshFont(React);
     const titleId = useSafeId('dsh-wb-dialog-title');
     const P = primitives();
     const close = () => {
@@ -961,6 +1068,7 @@ function createWorkbenchUI(React, require) {
         open: true,
         headless: true,
         dshStyle: style,
+        dshFont: font,
         title,
         closeLabel,
         onClose: close,
@@ -971,9 +1079,10 @@ function createWorkbenchUI(React, require) {
       h(
         'div',
         {
-          ref: createOverlaySyncRef(style),
+          ref: createOverlaySyncRef(style, font),
           className: 'dsh-wb-dialog-frame',
           'data-dsh-style': style,
+          'data-dsh-font': font,
           'data-window-drag-exclude': '',
         },
         h(
@@ -1034,7 +1143,7 @@ function createWorkbenchUI(React, require) {
   --w-radius-md: var(--dsw-radius-md, 12px);
   box-sizing: border-box;
   color: var(--w-ink);
-  font-family: var(--dsh-font-family-content, system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif);
+  font-family: var(--dsh-font-body, var(--dsh-font-family-content, system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif));
   font-size: 13px;
   line-height: 20px;
   text-align: start;
@@ -1060,7 +1169,7 @@ function createWorkbenchUI(React, require) {
   min-width: 0;
   padding-block-start: var(--dsh-frame-top-clearance, 0px);
   padding-inline-start: var(--dsh-frame-leading-clearance, 0px);
-  background: var(--w-bg-base);
+  background-color: var(--w-bg-base);
   container-type: inline-size;
   container-name: dsh-workbench;
 }
@@ -1074,41 +1183,7 @@ function createWorkbenchUI(React, require) {
 }
 
 .dsh-wb-header {
-  display: flex;
-  flex: none;
-  min-height: 52px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 18px;
-  border-block-end: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
-  background: var(--w-bg-base);
-}
-
-.dsh-wb-heading {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.dsh-wb-title {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin: 0;
-  font-size: 15px;
-  line-height: 22px;
-  font-weight: 650;
-  color: var(--w-ink);
-}
-
-.dsh-wb-subtitle {
-  margin: 0;
-  padding-inline-start: 35px;
-  font-size: 12px;
-  line-height: 18px;
-  color: var(--w-muted);
+  min-height: 48px;
 }
 
 .dsh-wb-brand,
@@ -1121,9 +1196,12 @@ function createWorkbenchUI(React, require) {
   border-radius: var(--w-radius-sm);
 }
 
-.dsh-wb-brand {
-  width: 26px;
-  height: 26px;
+:where(.dsh-header-badge.dsh-wb-brand) {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--w-radius-xs);
+  background: var(--w-primary-fill);
+  color: var(--w-primary-ink);
 }
 
 .dsh-wb-header-actions,
@@ -1140,6 +1218,8 @@ function createWorkbenchUI(React, require) {
   margin-inline-start: auto;
   justify-content: flex-end;
   flex: none;
+  flex-wrap: nowrap;
+  gap: 6px;
 }
 
 .dsh-wb-subbar {
@@ -1148,7 +1228,7 @@ function createWorkbenchUI(React, require) {
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  padding: 8px 18px;
+  padding: 8px 14px;
   background: var(--w-bg-1);
   border-block-end: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
 }
@@ -1168,12 +1248,19 @@ function createWorkbenchUI(React, require) {
   overscroll-behavior: contain;
 }
 
+.dsh-wb-body:has(> .dsh-wb-tab-panel) {
+  overflow: hidden;
+}
+
 .dsh-wb-body > [data-plugin-update-footer],
 .dsh-wb-tab-panel > [data-plugin-update-footer] {
+  flex: none;
   box-sizing: border-box;
-  width: min(100%, 960px);
-  margin: auto auto 0;
-  padding: 14px 20px 22px;
+  width: 100%;
+  min-height: 32px;
+  margin: 0;
+  padding: 6px 14px;
+  background: var(--w-bg-1);
   border-block-start: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
 }
 
@@ -1185,20 +1272,26 @@ function createWorkbenchUI(React, require) {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
   overflow-x: auto;
-  padding: 6px 18px 0;
+  padding: 4px 14px;
   border-block-end: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
   background: var(--w-bg-base);
 }
 
-.dsh-wb-tab.dsh-wb-tab {
+.dsh-header .dsh-wb-tabs {
+  padding: 0;
+  border-block-end: 0;
+  background: transparent;
+}
+
+.dsh-wb-tab {
   flex: none;
-  min-height: 34px;
-  padding: 6px 12px 8px;
+  min-height: 30px;
+  padding: 4px 10px;
   border: 0;
-  border-radius: var(--w-radius-xs) var(--w-radius-xs) 0 0;
+  border-radius: var(--w-radius-xs);
   background: transparent;
   color: var(--w-muted);
   font-weight: 550;
@@ -1206,15 +1299,22 @@ function createWorkbenchUI(React, require) {
   box-shadow: none;
 }
 
-.dsh-wb-tab.dsh-wb-tab[aria-selected="true"] {
+.dsh-wb-tab[aria-selected="true"] {
   color: var(--w-ink);
-  background: var(--w-hover);
   font-weight: 650;
+}
+
+.dsh-wb-tabs:not([data-indicator-ready="true"]) .dsh-wb-tab[aria-selected="true"] {
+  background: var(--w-hover);
 }
 
 .dsh-wb-tab-panel {
   overflow: auto;
   overscroll-behavior: contain;
+}
+
+.dsh-wb-tab-panel:has(> .dsh-wb-split) {
+  overflow: hidden;
 }
 
 .dsh-wb-count,
@@ -1274,27 +1374,27 @@ function createWorkbenchUI(React, require) {
   cursor: not-allowed;
 }
 
-.dsh-wb-btn-outline.dsh-wb-btn-outline {
+.dsh-wb-btn-outline {
   background: var(--w-bg-base);
   color: var(--w-ink);
   border: var(--dsh-control-border-width, 0.5px) solid var(--w-border-strong);
   box-shadow: var(--dsh-button-shadow, none);
 }
 
-.dsh-wb-btn-ghost.dsh-wb-btn-ghost {
+.dsh-wb-btn-ghost {
   background: transparent;
   color: var(--w-muted);
   border: var(--dsh-control-border-width, 0.5px) solid transparent;
 }
 
-.dsh-wb-btn-primary.dsh-wb-btn-primary {
+.dsh-wb-btn-primary {
   background: var(--w-primary-fill);
   color: var(--w-primary-ink);
   border: var(--dsh-control-border-width, 0.5px) solid var(--w-primary-fill);
   box-shadow: var(--dsh-button-shadow, none);
 }
 
-.dsh-wb-btn-danger.dsh-wb-btn-danger {
+.dsh-wb-btn-danger {
   background: var(--w-bg-base);
   color: var(--w-danger);
   border: var(--dsh-control-border-width, 0.5px) solid color-mix(in oklab, var(--w-danger) 32%, var(--w-border));
@@ -1549,26 +1649,28 @@ function createWorkbenchUI(React, require) {
 
 /* Master-Detail Split & Interactive Rows */
 .dsh-wb-split {
-  display: grid;
-  grid-template-columns: minmax(250px, var(--dsh-list-width, 360px)) minmax(0, 1fr);
+  display: flex;
   flex: 1;
-  min-height: 440px;
+  min-height: 0;
   min-width: 0;
+  width: 100%;
 }
 
 .dsh-wb-master {
   display: flex;
   flex-direction: column;
+  flex: none;
+  width: var(--dsh-split-size, var(--dsh-list-width, 360px));
   min-width: 0;
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
-  border-inline-end: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
-  background: var(--w-bg-base);
+  background: transparent;
 }
 
 .dsh-wb-detail {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
@@ -1576,7 +1678,7 @@ function createWorkbenchUI(React, require) {
   overscroll-behavior: contain;
   overflow-wrap: anywhere;
   padding: 20px 24px;
-  background: var(--w-bg-base);
+  background: transparent;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -1599,13 +1701,14 @@ function createWorkbenchUI(React, require) {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 12px 14px;
+  padding: 10px 14px;
   border-block-end: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
   background: var(--w-bg-1);
 }
 
 .dsh-wb-row {
   display: flex;
+  align-items: stretch;
   min-width: 0;
   position: relative;
   border-block-end: var(--dsh-control-border-width, 0.5px) solid var(--w-border);
@@ -1630,18 +1733,29 @@ function createWorkbenchUI(React, require) {
 
 .dsh-wb-row-btn.dsh-wb-row-btn {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   align-items: stretch;
   gap: 5px;
-  width: 100%;
   min-width: 0;
-  padding: 13px 14px;
+  padding: 12px 14px;
   border: 0 !important;
   box-shadow: none !important;
   background: transparent;
   color: inherit;
   text-align: start;
   cursor: pointer;
+}
+
+.dsh-wb-row > .dsh-row-actions {
+  align-self: center;
+  padding-inline-end: 8px;
+}
+
+.dsh-wb-row > .dsh-row-actions .dsh-wb-icon-btn.dsh-wb-icon-btn {
+  width: 26px;
+  min-width: 26px;
+  min-height: 26px;
 }
 
 .dsh-wb-row-head {
@@ -1652,7 +1766,14 @@ function createWorkbenchUI(React, require) {
   min-width: 0;
 }
 
-.dsh-wb-row-head > strong {
+.dsh-wb-row-title-wrap {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dsh-wb-row-title-wrap > strong {
   font-size: 13.5px;
   line-height: 19px;
   font-weight: 600;
@@ -1737,7 +1858,9 @@ function createWorkbenchUI(React, require) {
   pointer-events: none;
   z-index: 2147483000;
   color: var(--tour-ink);
-  font: 13px/1.55 var(--ds-font-family-ui, system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif);
+  font-size: 13px;
+  line-height: 1.55;
+  font-family: var(--dsh-font-body, var(--ds-font-family-ui, system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif));
 }
 
 .dsh-wb-tour-layer[data-dsh-style="pixel8bit"] {
@@ -2030,7 +2153,7 @@ function createWorkbenchUI(React, require) {
   border-radius: var(--w-radius-xs);
   background: var(--w-bg-2);
   color: var(--w-ink);
-  font: 11.5px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+  font: 11.5px/1.5 var(--dsh-font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
   overflow-wrap: anywhere;
   user-select: text;
 }
@@ -2112,19 +2235,10 @@ function createWorkbenchUI(React, require) {
 }
 
 /* Container Queries */
-@container dsh-workbench (max-width: 960px) {
-  .dsh-wb-split {
-    grid-template-columns: minmax(230px, 36%) minmax(0, 1fr);
-  }
-}
-
 @container dsh-workbench (max-width: 760px) {
   .dsh-wb-header {
     flex-wrap: wrap;
-    padding: 10px 14px;
-  }
-  .dsh-wb-subtitle {
-    padding-inline-start: 0;
+    padding: 6px 12px;
   }
   .dsh-wb-header-actions {
     width: 100%;
@@ -2132,12 +2246,18 @@ function createWorkbenchUI(React, require) {
     justify-content: flex-start;
   }
   .dsh-wb-tabs {
-    padding-inline: 12px;
+    padding-inline: 8px;
+  }
+  .dsh-wb-tab-panel:has(> .dsh-wb-split) {
+    overflow: auto;
   }
   .dsh-wb-split {
     display: flex;
     flex-direction: column;
     min-height: 360px;
+  }
+  .dsh-wb-split > .dsh-split-resizer {
+    display: none;
   }
   .dsh-wb-split[data-selected="false"] > .dsh-wb-detail {
     display: none;
@@ -2146,6 +2266,8 @@ function createWorkbenchUI(React, require) {
     display: none;
   }
   .dsh-wb-master {
+    width: 100% !important;
+    flex: 1;
     border-inline-end: 0;
   }
   .dsh-wb-detail {
@@ -2157,13 +2279,13 @@ function createWorkbenchUI(React, require) {
 }
 `;
 
-  const styles = DSH_THEMES_AND_MOTION_CSS + '\n' + WORKBENCH_V2_CSS;
+  const styles = WORKBENCH_V2_CSS + '\n' + DSH_THEMES_AND_MOTION_CSS;
 
   function ensureStylesInHead() {
     if (typeof document === 'undefined' || !document.head || typeof document.querySelector !== 'function') {
       return false;
     }
-    const id = 'dsh-workbench-ui-v2';
+    const id = 'dsh-workbench-ui-v3';
     if (!document.querySelector('style[data-plugin-css="' + id + '"]')) {
       const styleEl = document.createElement('style');
       styleEl.setAttribute('data-plugin-css', id);
@@ -2178,7 +2300,7 @@ function createWorkbenchUI(React, require) {
       ensureStylesInHead();
     }, []);
     if (ensureStylesInHead()) return null;
-    return h('style', { 'data-plugin-css': 'dsh-workbench-ui-v2' }, styles);
+    return h('style', { 'data-plugin-css': 'dsh-workbench-ui-v3' }, styles);
   }
 
   return {
@@ -2192,9 +2314,12 @@ function createWorkbenchUI(React, require) {
     Search,
     Page,
     Tabs,
+    TabPanel,
     Status,
     Empty,
     Split,
+    SplitResizer: DshSplitResizer,
+    Skeleton,
     Row,
     Details,
     CopyPrompt,
@@ -2203,15 +2328,31 @@ function createWorkbenchUI(React, require) {
     writeClipboardText,
     Dialog,
     StyleSwitcher,
+    FontSwitcher,
     Styles,
     register,
     primitives,
     styles,
     DSH_STYLES,
+    DSH_DEFAULT_STYLE,
+    normalizeDshStyle,
+    getDshStylePreset,
     useDshStyle,
     readDshStyle,
     writeDshStyle,
     subscribeDshStyle,
+    DSH_FONTS,
+    DSH_DEFAULT_FONT,
+    normalizeDshFont,
+    getDshFontPreset,
+    useDshFont,
+    readDshFont,
+    writeDshFont,
+    subscribeDshFont,
+    syncPortaledFont,
+    syncPortaledOverlays,
     createOverlaySyncRef,
+    useResizableSplit,
+    useSlidingTabIndicator,
   };
 }

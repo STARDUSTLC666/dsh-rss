@@ -258,8 +258,18 @@ window.__ModuleLoader__.load({ id: 'dsh-rss', factory: require => {
                 icon: 'rss',
                 lang: language,
                 title: t('title'),
-                subtitle: rssText('选择可信来源，先预览再订阅。', 'Choose trusted sources. Preview before subscribing.'),
                 className: 'dshr rss-workbench',
+                navigation: h(W.Tabs, {
+                    id: rssTabsId,
+                    label: rssText('RSS 视图', 'RSS views'),
+                    value: activeTab,
+                    onChange: setActiveTab,
+                    items: [
+                        { id: 'feeds', label: rssText('我的订阅', 'My feeds'), count: feeds.length },
+                        { id: 'catalog', label: t('recommended'), count: catalog.sources.length || undefined },
+                        { id: 'transfer', label: rssText('导入与导出', 'Import and export') },
+                    ],
+                }),
                 tourSteps: rssTourSteps,
                 tourStorageKey: 'dsh-rss.tour.v1',
                 modalOpen: Boolean(modal),
@@ -279,18 +289,13 @@ window.__ModuleLoader__.load({ id: 'dsh-rss', factory: require => {
                 state && !writable ? h(W.Status, { tone: 'warn' }, t('readonly')) : null,
                 !modal ? h(W.Status, { tone: 'error' }, error) : null,
                 h(W.Status, { tone: 'success' }, notice),
-                h(W.Tabs, {
-                    id: rssTabsId,
-                    label: rssText('RSS 视图', 'RSS views'),
-                    value: activeTab,
-                    onChange: setActiveTab,
-                    items: [
-                        { id: 'feeds', label: rssText('我的订阅', 'My feeds'), count: feeds.length },
-                        { id: 'catalog', label: t('recommended'), count: catalog.sources.length || undefined },
-                        { id: 'transfer', label: rssText('导入与导出', 'Import and export') },
-                    ],
-                },
-                    loading ? h(W.Empty, { title: t('loading'), icon: 'rss' })
+                h(W.TabPanel, { key: activeTab, id: rssTabsId, activeTab },
+                    loading ? h('div', { className: 'rss-skeleton-split dsh-split-pane' },
+                        h('div', { className: 'rss-skeleton-list dsh-split-leading', style: { '--dsh-split-size': '380px' } },
+                            [0, 1, 2, 3, 4].map(i => h(W.Skeleton, { key: i, variant: 'row' }))),
+                        h('div', { className: 'rss-skeleton-detail dsh-split-trailing' },
+                            h(W.Skeleton, { variant: 'card', label: t('loading') }),
+                            h(W.Skeleton, { variant: 'text', lines: 4 })))
                     : !state ? h(W.Empty, { title: t('loadError'), icon: 'rss', action: h(W.Button, { icon: 'refresh', disabled: !!busy, onClick: () => run(null) }, t('retry')) })
                     : activeTab === 'feeds' ? h(RssFeedBrowser, {
                         feeds,
