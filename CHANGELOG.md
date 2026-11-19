@@ -1,5 +1,11 @@
 # 更新记录
 
+
+## 0.11.1 (2026-11-19)
+
+- 修复弹窗和备用控件在重绘时被重新挂载的问题，保持编辑焦点，同时支持宿主控件迟到、卸载与替换。
+- Preserve modal and fallback-control identity across renders without losing late host discovery.
+
 ## 0.11.0 (2026-11-18)
 
 - **Workbench UI v3 + 13 套明亮工作台主题 + 8 套双层中英字体搭配**：
