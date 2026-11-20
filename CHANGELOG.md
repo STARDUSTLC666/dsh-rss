@@ -1,5 +1,10 @@
 # 更新记录
 
+## 0.11.5 (2026-11-20)
+
+- 完成订阅写入、网络地址与重定向边界、响应限额、取消及 OPML 路径约束的全量回归验证，保留现有 API 与订阅格式。
+- Verify subscription writes, network boundaries, response limits, cancellation and OPML workspace paths against the full regression suite.
+- 同步共享更新组件 0.2.9，修复取消窗口和失败响应清理，并确保运行中旧协调器在空闲后接管修复。
 
 ## 0.11.4 (2026-11-20)
 
