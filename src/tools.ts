@@ -525,6 +525,7 @@ export function buildRssTools(
       const { parsed } = await readFeed(url, exec)
       const effectiveName = name !== '' ? name : parsed.feed.title
       return mutateSubscriptions(settingsScope, current => {
+        exec?.signal?.throwIfAborted()
         const { feeds, added, existed } = addFeed(current, url, effectiveName, category)
         return { feeds, value: { added, existed, count: feeds.length, feedTitle: parsed.feed.title, feedType: parsed.feed.feedType } }
       })
@@ -543,9 +544,11 @@ export function buildRssTools(
       schema: removeSchema,
       render: renderRemove,
     },
-    async execute(rawArgs: unknown) {
+    async execute(rawArgs: unknown, exec?: RssToolExecution) {
+      exec?.signal?.throwIfAborted()
       const args = asRecord(rawArgs)
       return mutateSubscriptions(settingsScope, current => {
+        exec?.signal?.throwIfAborted()
         const { feeds, removed } = removeFeed(current, optionalString(args, 'url'), optionalString(args, 'name'))
         return { feeds, value: { removed, count: feeds.length } }
       })
@@ -684,11 +687,13 @@ export function buildRssTools(
       schema: opmlImportSchema,
       render: renderOpmlImport,
     },
-    async execute(rawArgs: unknown) {
+    async execute(rawArgs: unknown, exec?: RssToolExecution) {
+      exec?.signal?.throwIfAborted()
       const args = asRecord(rawArgs)
       const opmlText = requiredString(args, 'opml', 'OPML 文本')
       const document = parseOpml(opmlText)
       return mutateSubscriptions(settingsScope, current => {
+        exec?.signal?.throwIfAborted()
         const outcome = importOpmlFeeds(current, document)
         return { feeds: outcome.feeds, value: {
           addedCount: outcome.addedCount, existedCount: outcome.existedCount,
