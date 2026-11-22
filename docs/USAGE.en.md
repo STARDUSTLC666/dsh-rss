@@ -24,7 +24,9 @@ For the desktop profile, use `dsh plugin --profile desktop add dsh-rss` and reop
 
 ## Subscription panel
 
-Open **Settings → RSS subscriptions** and choose Recommended feeds, Enter a URL, or Import OPML.
+Open **RSS subscriptions** from the sidebar (or **Settings → RSS subscriptions**) for **My feeds**, **Recommended feeds**, **Import and export**, plus the header **? Tour** walkthrough and 13 synced styles / 8 font pairings.
+
+**My feeds** defaults to the **Editorial Zine Spread (`Zine`)** view: a floating strip offers the **`Zine / List`** toggle, category pills, instant search, and **Copy daily briefing prompt**, above an asymmetric 12-column magazine spread (7-col Lead Hero Story + 5-col Feature Dispatches + 3-col Bento Story Grid). Clicking any card morphs smoothly via View Transitions into a centered Editorial Reader Sheet where you can fetch up to 5 recent articles, edit/remove the feed, or morph back to the desk; toggle **List** anytime for the classic split pane.
 
 The catalog lists 17 publisher-hosted RSS/Atom feeds in Technology news, AI and research, Software updates, Reading and blogs, and Life and interests. Filter by source, keywords and content language. Cards link to the publisher and show the feed URL. Preview and check fetches only the selected source and shows up to five recent articles. Subscribe checks the feed before saving, and existing URLs show Subscribed. Browsing the catalog does not subscribe, fetch every site, or rename or recategorize existing subscriptions. Feeds such as arXiv can be valid but empty on non-publication days.
 

@@ -1,5 +1,18 @@
 # 更新记录
 
+## 0.12.0 (2026-11-22)
+
+- **全新默认「编辑部画报桌面（Editorial Zine Spread）」+ 原生 View Transitions 阅读单**：
+  - `我的订阅` 默认升级为 12 栏非对称编辑部画报桌面：顶部悬浮条集成 **`画报 / 列表`** 视图切换、动态分类胶囊、实时搜索与「复制今日简报指令」；正文采用 7 栏封面头条卡片（含快捷头条抓取与 1 键复制单源提炼指令）+ 5 栏精选快讯堆叠 + 3 栏 Bento 故事网格，随时一键切回经典双栏「列表」视图。
+  - 点击任意画报卡片通过原生 `document.startViewTransition()` 原地平滑展开居中 **Editorial Reader Sheet**（完整近期文章、检查更新、AI 简报指令、编辑/移除与「收拢回画报桌」反向平滑收拢），并支持不支持浏览器优雅降级、`prefers-reduced-motion: reduce` 禁用动画及程序化焦点管理。
+  - 修复英文界面及中等宽度面板下顶栏标签与操作按钮重叠问题（`@container dsh-workbench (max-width: 1220px)` 自适应清晰换行）。
+  - 全面更新 5 步 `? 引导`（`CoachmarkTour`）、中英文使用流程文档、流程示意 SVG 与实机截图。
+- **New Default Editorial Zine Spread + Native View Transitions Reader Sheet**:
+  - **My feeds** now defaults to an asymmetric 12-column Editorial Zine Spread (7-col Lead Hero Story + 5-col stacked Feature Dispatches + 3-col Bento Story Grid) with a floating category/search/AI-briefing strip and a compact **`Zine / List`** toggle to return to the classic split list anytime.
+  - Clicking any story card morphs smoothly via `document.startViewTransition()` into a centered Editorial Reader Sheet (with graceful fallback, `prefers-reduced-motion: reduce` disable, and programmatic focus routing on expand/collapse).
+  - Fixed English/narrow-viewport topbar overlap with responsive container header wrapping.
+  - Updated the 5-step `? Tour`, Chinese/English usage guides, workflow SVGs, and README screenshots.
+
 ## 0.11.6 (2026-11-20)
 
 - 升级共享更新组件至 0.2.10，移除跨插件右下角浮动提醒，保留工作台及插件详情页更新控制。

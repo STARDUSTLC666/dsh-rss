@@ -262,6 +262,7 @@ function createMockEnv({ withHostPrimitives = false, storageThrows = false, init
     React,
     client,
     storage,
+    mockWindow,
     mockDocument,
     dispatchedEvents,
     makeDomElement,
@@ -318,7 +319,7 @@ test('RSS Workbench UI v2 lazily integrates @deepseek-ai/dsh-client-ui-primitive
   assert.ok(fontTrigger, 'renders compact FontSwitcher trigger beside StyleSwitcher')
 
   const hostMenus = env.findAll(pageTree, n => n.type === 'HostMenu')
-  assert.ok(hostMenus.length >= 3, 'StyleSwitcher, FontSwitcher, and category ChoiceMenu use host Menu')
+  assert.ok(hostMenus.length >= 2, 'StyleSwitcher and FontSwitcher use host Menu in default Zine mode')
 
   const hostInputs = env.findAll(pageTree, n => n.type === 'HostInput')
   assert.ok(hostInputs.length >= 1, 'Search bar uses host Input')
@@ -330,6 +331,32 @@ test('RSS Workbench UI v2 lazily integrates @deepseek-ai/dsh-client-ui-primitive
   assert.ok(iconNames.has('edit'))
   assert.ok(iconNames.has('trash'))
   assert.ok(iconNames.has('down'))
+
+  // Switch to classic List mode and verify category ChoiceMenu also uses host Menu
+  const listToggle = env.findAll(pageTree, n => n.type === 'button' && n.props?.['data-rss-view-toggle'] === 'list')[0]
+  assert.ok(listToggle, 'renders compact List view toggle')
+  listToggle.props.onClick()
+  const listPageTree = env.expand(env.rerenderTree(() =>
+    env.React.createElement(
+      W.Page,
+      { workbench: true, title: 'RSS 订阅', icon: 'rss' },
+      env.React.createElement(RssFeedBrowser, {
+        feeds: [sampleFeed],
+        filtered: [sampleFeed],
+        categories: ['科技'],
+        query: '',
+        setQuery() {},
+        category: '*',
+        setCategory() {},
+        writable: true,
+        busy: '',
+        run() {},
+        open() {},
+      }),
+    ),
+  ))
+  const listHostMenus = env.findAll(listPageTree, n => n.type === 'HostMenu')
+  assert.ok(listHostMenus.length >= 3, 'StyleSwitcher, FontSwitcher, and category ChoiceMenu use host Menu in List mode')
   env.cleanup()
 })
 
@@ -570,15 +597,16 @@ test('My feeds 1-click AI briefing prompts & interactive CoachmarkTour (? 引导
   const arrow = env.findAll(tourDialog, n => Object.hasOwn(n.props || {}, 'data-tour-arrow'))[0]
   assert.ok(arrow, 'CoachmarkTour renders directional [data-tour-arrow]')
 
-  // Advance through all 4 steps and verify Step 3 inline AI briefing prompt copy + localStorage 'done' persistence
+  // Advance through all 5 bespoke steps and verify Step 3 inline AI briefing prompt copy + localStorage 'done' persistence
+  assert.equal(tourDialog.props['data-tour-card'], 'zine-strip')
   let nextBtn = env.findAll(tourDialog, n => Object.hasOwn(n.props || {}, 'data-tour-next'))[0]
-  nextBtn.props.onClick() // -> step 1 (添加自定义 RSS / Atom 源)
+  nextBtn.props.onClick() // -> step 1 (点击画报卡片 · 原地展开阅读)
   panelTree = env.rerenderTree(() => env.React.createElement(Panel, { workbench: true }))
   tourDialog = env.findAll(panelTree, n => n.props?.role === 'dialog' && n.props?.['aria-modal'] === 'false')[0]
-  assert.equal(tourDialog.props['data-tour-card'], 'add-feed')
+  assert.equal(tourDialog.props['data-tour-card'], 'zine-hero')
 
   nextBtn = env.findAll(tourDialog, n => Object.hasOwn(n.props || {}, 'data-tour-next'))[0]
-  nextBtn.props.onClick() // -> step 2 (让 AI 汇总今日订阅简报)
+  nextBtn.props.onClick() // -> step 2 (一键复制 AI 每日简报与单源提炼指令)
   panelTree = env.rerenderTree(() => env.React.createElement(Panel, { workbench: true }))
   tourDialog = env.findAll(panelTree, n => n.props?.role === 'dialog' && n.props?.['aria-modal'] === 'false')[0]
   assert.equal(tourDialog.props['data-tour-card'], 'ai-briefing')
@@ -590,10 +618,16 @@ test('My feeds 1-click AI briefing prompts & interactive CoachmarkTour (? 引导
   assert.equal(copied.at(-1), '汇总我订阅源里今天的重点更新，按主题提炼要点并附上原文链接')
 
   nextBtn = env.findAll(tourDialog, n => Object.hasOwn(n.props || {}, 'data-tour-next'))[0]
-  nextBtn.props.onClick() // -> step 3 (OPML 批量导入与导出备份)
+  nextBtn.props.onClick() // -> step 3 (推荐来源目录、自定义添加与 OPML 迁移)
   panelTree = env.rerenderTree(() => env.React.createElement(Panel, { workbench: true }))
   tourDialog = env.findAll(panelTree, n => n.props?.role === 'dialog' && n.props?.['aria-modal'] === 'false')[0]
-  assert.equal(tourDialog.props['data-tour-card'], 'opml')
+  assert.equal(tourDialog.props['data-tour-card'], 'catalog-opml')
+
+  nextBtn = env.findAll(tourDialog, n => Object.hasOwn(n.props || {}, 'data-tour-next'))[0]
+  nextBtn.props.onClick() // -> step 4 (13 套工作台风格与 8 套字体搭配)
+  panelTree = env.rerenderTree(() => env.React.createElement(Panel, { workbench: true }))
+  tourDialog = env.findAll(panelTree, n => n.props?.role === 'dialog' && n.props?.['aria-modal'] === 'false')[0]
+  assert.equal(tourDialog.props['data-tour-card'], 'theme-font')
 
   const doneBtn = env.findAll(tourDialog, n => Object.hasOwn(n.props || {}, 'data-tour-next'))[0]
   doneBtn.props.onClick() // finish tour
@@ -737,8 +771,16 @@ test('UI v3 unified 48px header, sliding tabs, resizable split pane, shimmer ske
   )
   assert.ok(env.findAll(browserTree, n => Object.hasOwn(n.props || {}, 'data-dsh-skeleton')).length >= 1, 'renders refresh shimmer skeleton when busy=load')
 
+  // Switch to classic 列表 mode (persists to localStorage) and remount cleanly in mock React
+  const listBtn = env.findAll(browserTree, n => n.type === 'button' && n.props?.['data-rss-view-toggle'] === 'list')[0]
+  assert.ok(listBtn, 'renders 列表 view toggle button')
+  listBtn.props.onClick()
+  assert.equal(env.storage.get('dsh-rss:feeds-view-mode'), 'list')
+  env.resetState()
+  browserTree = renderBrowser()
+
   const resizer = env.findAll(browserTree, n => n.props?.role === 'separator' && Object.hasOwn(n.props || {}, 'data-dsh-resizer'))[0]
-  assert.ok(resizer, 'renders DshSplitResizer separator')
+  assert.ok(resizer, 'renders DshSplitResizer separator in List mode')
   assert.equal(resizer.props['aria-valuenow'], 380)
   resizer.props.onKeyDown({ key: 'ArrowLeft', preventDefault() {} })
   browserTree = renderBrowser()
@@ -794,5 +836,161 @@ test('CoachmarkTour measure() safely escapes React.useId() colon selectors witho
   )
   assert.deepEqual(queried, ['#:r22:-tabs-tab-catalog', '[id=":r22:-tabs-tab-catalog"]'])
   assert.ok(capturedLayout?.spotlight, 'resolves spotlight bounds via escaped [id="..."] selector')
+  env.cleanup()
+})
+
+test('Editorial Zine Spread default view: asymmetric 12-col layout, category pills, View Transitions morph, reduced-motion fallback & focus routing', async () => {
+  const env = createMockEnv({ withHostPrimitives: false })
+  const { RssFeedBrowser } = env.client.probe
+  const bundle = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8')
+
+  // Verify bundled Editorial Zine Spread & View Transition CSS rules
+  assert.match(bundle, /grid-template-columns:\s*repeat\(12,\s*minmax\(0,\s*1fr\)\)/)
+  assert.match(bundle, /grid-column:\s*span 7/)
+  assert.match(bundle, /grid-column:\s*span 5/)
+  assert.match(bundle, /grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/)
+  assert.match(bundle, /width:\s*fit-content/)
+  assert.match(bundle, /::view-transition-old\(dsh-rss-story-hero\)/)
+  assert.match(bundle, /@container dsh-workbench \(max-width:\s*1220px\)/)
+  assert.match(bundle, /@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]*?::view-transition-group\(\*\)/)
+
+  const sampleFeeds = [
+    { id: 'f1', name: '少数派', url: 'https://sspai.com/feed', category: '科技', check: { ok: true, entryCount: 14, checkedAt: '2026-11-22T02:00:00Z' } },
+    { id: 'f2', name: '阮一峰的网络日志', url: 'https://www.ruanyifeng.com/blog/atom.xml', category: '工程', check: { ok: true, entryCount: 8, checkedAt: '2026-11-22T01:30:00Z' } },
+    { id: 'f3', name: '机核 GCORES', url: 'https://www.gcores.com/rss', category: '文化' },
+    { id: 'f4', name: '极客公园', url: 'https://www.geekpark.net/rss', category: '科技' },
+    { id: 'f5', name: 'HelloGitHub', url: 'https://hellogithub.com/rss', category: '工程' },
+  ]
+  let currentCategory = '*'
+  let vtCalls = 0
+  let finishResolvers = []
+  let reducedMotion = false
+
+  env.mockWindow.matchMedia = query => ({ matches: query.includes('prefers-reduced-motion') ? reducedMotion : false })
+  env.mockDocument.startViewTransition = cb => {
+    vtCalls++
+    const updateDone = Promise.resolve(cb())
+    const finished = new Promise(resolve => finishResolvers.push(resolve))
+    return { updateCallbackDone: updateDone, finished }
+  }
+
+  const renderZine = () =>
+    env.renderTree(() =>
+      env.React.createElement(RssFeedBrowser, {
+        feeds: sampleFeeds,
+        filtered: currentCategory === '*' ? sampleFeeds : sampleFeeds.filter(f => f.category === currentCategory),
+        categories: ['科技', '工程', '文化'],
+        query: '',
+        setQuery() {},
+        category: currentCategory,
+        setCategory: next => { currentCategory = next },
+        writable: true,
+        busy: '',
+        run() {},
+        open() {},
+        setNotice() {},
+      }),
+    )
+
+  let tree = renderZine()
+  // Default landing view is 画报 (Zine), NOT classic left-list split pane
+  const zineDesk = env.findAll(tree, n => n.props?.['data-rss-view'] === 'zine')[0]
+  assert.ok(zineDesk, 'defaults to Editorial Zine Spread view')
+  assert.equal(env.findAll(tree, n => n.props?.role === 'separator' && Object.hasOwn(n.props || {}, 'data-dsh-resizer')).length, 0, 'no split resizer in default Zine mode')
+
+  const zineToggle = env.findAll(tree, n => n.type === 'button' && n.props?.['data-rss-view-toggle'] === 'zine')[0]
+  assert.equal(zineToggle.props['aria-pressed'], true)
+
+  // Asymmetric 12-column editorial spread: 1 Hero + 2 stacked Feature Dispatches + 2 Bento Grid cards
+  assert.equal(env.findAll(tree, n => n.props?.['data-rss-zine-card'] === 'hero').length, 1)
+  assert.equal(env.findAll(tree, n => n.props?.['data-rss-zine-card'] === 'feature').length, 2)
+  assert.equal(env.findAll(tree, n => n.props?.['data-rss-zine-card'] === 'bento').length, 2)
+
+  // Attach mock DOM elements to verify viewTransitionName assignment & cleanup + focus routing
+  const cardEls = new Map()
+  const triggerEls = new Map()
+  for (const card of env.findAll(tree, n => n.props?.['data-rss-feed-id'])) {
+    const el = { style: { viewTransitionName: '' } }
+    cardEls.set(card.props['data-rss-feed-id'], el)
+    card.props.ref?.(el)
+  }
+  for (const trig of env.findAll(tree, n => n.props?.['data-rss-zine-open'])) {
+    const el = { focused: false, focus() { this.focused = true } }
+    triggerEls.set(trig.props['data-rss-zine-open'], el)
+    trig.props.ref?.(el)
+  }
+
+  // Click Feature card f2 to expand via startViewTransition
+  const openF2 = env.findAll(tree, n => n.props?.['data-rss-zine-open'] === 'f2')[0]
+  openF2.props.onClick()
+  assert.equal(vtCalls, 1, 'uses document.startViewTransition when expanding a story card')
+  assert.equal(cardEls.get('f1').style.viewTransitionName, '', 'non-active card does not get viewTransitionName')
+
+  // Render expanded Reader Sheet, attach heading + sheet refs, verify focus routing & cleanup
+  const readerHeadingEl = { focused: false, focus() { this.focused = true } }
+  const readerSheetEl = { style: { viewTransitionName: '' } }
+  tree = env.rerenderTree(() =>
+    env.React.createElement(RssFeedBrowser, {
+      feeds: sampleFeeds,
+      filtered: sampleFeeds,
+      categories: ['科技', '工程', '文化'],
+      query: '',
+      setQuery() {},
+      category: '*',
+      setCategory() {},
+      writable: true,
+      busy: '',
+      run() {},
+      open() {},
+      setNotice() {},
+    }),
+  )
+  const readerSheet = env.findAll(tree, n => n.props?.['data-rss-zine-reader'] === 'f2')[0]
+  assert.ok(readerSheet, 'renders centered Editorial Reader Sheet for clicked feed f2')
+  assert.equal(readerSheet.props.style?.viewTransitionName, 'dsh-rss-story-hero', 'active Reader Sheet receives hero view-transition-name during morph')
+  readerSheet.props.ref.current = readerSheetEl
+  const readerHeading = env.findAll(readerSheet, n => n.type === 'h2')[0]
+  readerHeading.props.ref.current = readerHeadingEl
+  // Flush effect by calling renderZine
+  tree = renderZine()
+  assert.equal(readerHeadingEl.focused, true, 'programmatically focuses revealed Reader Sheet heading')
+
+  // Resolve view transition finished and confirm cleanup
+  finishResolvers.shift()?.()
+  await new Promise(r => setTimeout(r, 10))
+  tree = renderZine()
+  const settledSheet = env.findAll(tree, n => n.props?.['data-rss-zine-reader'] === 'f2')[0]
+  assert.equal(settledSheet.props.style?.viewTransitionName, undefined, 'cleans up viewTransitionName in finished.finally()')
+
+  // Click ← 收拢回画报桌 to smoothly reverse morph back and restore focus
+  const backBtn = env.findAll(settledSheet, n => n.type === 'button' && Object.hasOwn(n.props || {}, 'data-rss-zine-back'))[0]
+  assert.ok(backBtn, 'renders ← 收拢回画报桌 back button')
+  backBtn.props.onClick()
+  assert.equal(vtCalls, 2, 'uses document.startViewTransition on reverse collapse')
+  tree = renderZine()
+  assert.equal(env.findAll(tree, n => n.props?.['data-rss-zine-reader']).length, 0, 'collapses back to Editorial Zine Spread')
+  const returningCard = env.findAll(tree, n => n.props?.['data-rss-feed-id'] === 'f2')[0]
+  assert.equal(returningCard.props.style?.viewTransitionName, 'dsh-rss-story-hero', 'maps hero view-transition-name back to matching card on close')
+  assert.equal(triggerEls.get('f2').focused, true, 'restores focus to matching card trigger on collapse')
+
+  finishResolvers.shift()?.()
+  await new Promise(r => setTimeout(r, 10))
+
+  // Verify prefers-reduced-motion: reduce bypasses startViewTransition gracefully
+  reducedMotion = true
+  const openF1 = env.findAll(tree, n => n.props?.['data-rss-zine-open'] === 'f1')[0]
+  openF1.props.onClick()
+  assert.equal(vtCalls, 2, 'skips startViewTransition when prefers-reduced-motion: reduce is active')
+  tree = renderZine()
+  assert.ok(env.findAll(tree, n => n.props?.['data-rss-zine-reader'] === 'f1')[0], 'still opens Reader Sheet without View Transitions under reduced motion')
+
+  // Collapse and test category pill filter
+  env.findAll(tree, n => n.type === 'button' && Object.hasOwn(n.props || {}, 'data-rss-zine-back'))[0].props.onClick()
+  tree = renderZine()
+  const techPill = env.findAll(tree, n => n.type === 'button' && n.props?.className === 'rss-zine-cat-pill' && n.children?.[0] === '科技')[0]
+  assert.ok(techPill, 'renders dynamic category filter pill')
+  techPill.props.onClick()
+  assert.equal(currentCategory, '科技')
+
   env.cleanup()
 })

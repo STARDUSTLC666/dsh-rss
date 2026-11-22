@@ -76,6 +76,21 @@ window.__ModuleLoader__.load({ id: 'dsh-rss', factory: require => {
         }
         function Panel({ workbench = false } = {}) {
             const [activeTab, setActiveTab] = useState('feeds');
+            const [feedsViewMode, setFeedsViewModeState] = useState(() => {
+                try {
+                    const saved = typeof window !== 'undefined' ? window.localStorage?.getItem('dsh-rss:feeds-view-mode') : null;
+                    return saved === 'list' ? 'list' : 'zine';
+                } catch {
+                    return 'zine';
+                }
+            });
+            function setFeedsViewMode(next) {
+                const mode = next === 'list' ? 'list' : 'zine';
+                setFeedsViewModeState(mode);
+                try {
+                    if (typeof window !== 'undefined') window.localStorage?.setItem('dsh-rss:feeds-view-mode', mode);
+                } catch { }
+            }
             function exportFeeds() {
                 return run('export', {}, value => {
                     const url = URL.createObjectURL(new Blob([value.opml], { type: 'text/x-opml;charset=utf-8' }));
@@ -205,35 +220,36 @@ window.__ModuleLoader__.load({ id: 'dsh-rss', factory: require => {
 
             const rssTourSteps = [
                 {
-                    id: 'catalog',
-                    selector: '#' + rssTabsId + '-tab-catalog',
-                    fallback: '[data-tour="rss-recommended"]',
+                    id: 'zine-strip',
+                    selector: '[data-tour="rss-category-filter"]',
+                    fallback: '#' + rssTabsId + '-tab-feeds',
                     side: 'bottom',
-                    title: rssText('推荐来源与先预览再订阅', 'Recommended sources & preview first'),
+                    title: rssText('画报桌 / 列表切换与分类筛选', 'Editorial Zine / List toggle & filters'),
                     desc: rssText(
-                        '先从「推荐订阅源」按分类挑选并点「预览并检查」查看近期文章，确认喜欢后再订阅；仅浏览目录不会自动联网。',
-                        'Pick topics from Recommended feeds and preview recent entries before subscribing; browsing never contacts sites automatically.',
+                        '默认进入「画报」编辑部桌面，可用顶部分类胶囊与搜索框快速过滤订阅，也可一键切回经典「列表」双栏视图。',
+                        'Start in the Editorial Zine spread with category pills and instant search, or switch back to classic List split view anytime.',
                     ),
                 },
                 {
-                    id: 'add-feed',
-                    selector: '[data-tour="rss-add"]',
+                    id: 'zine-hero',
+                    selector: '[data-tour="rss-zine-hero"]',
+                    fallback: '[data-tour="rss-recommended"], #' + rssTabsId + '-tab-catalog',
                     side: 'bottom',
-                    title: rssText('添加自定义 RSS / Atom 源', 'Add custom RSS / Atom feeds'),
+                    title: rssText('点击画报卡片 · 原地展开阅读', 'Click any editorial card to expand'),
                     desc: rssText(
-                        '点击「添加订阅」可输入任意网站的原生 RSS / Atom 地址，并设置显示名称与自定义分类分组。',
-                        'Click Add feed to enter any publisher RSS / Atom URL with a display name and custom category.',
+                        '点击 12 栏非对称画报中的封面头条或精选卡片，即可通过 View Transitions 原地展开居中阅读单，检查近期文章或收拢回画报桌。',
+                        'Click the Hero or Feature cards in the 12-column spread to morph smoothly into a centered Editorial Reader Sheet via View Transitions.',
                     ),
                 },
                 {
                     id: 'ai-briefing',
-                    selector: '[data-tour="rss-category-filter"]',
-                    fallback: '#' + rssTabsId + '-tab-feeds',
+                    selector: '[data-tour="rss-briefing-cta"]',
+                    fallback: '[data-tour="rss-category-filter"], #' + rssTabsId + '-tab-feeds',
                     side: 'bottom',
-                    title: rssText('让 AI 汇总今日订阅简报', 'Summarize today’s briefing with AI'),
+                    title: rssText('一键复制 AI 每日简报与单源提炼指令', '1-click AI daily & single-feed briefings'),
                     desc: rssText(
-                        '订阅管理就绪后，一键复制下方指令发到对话，助手会自动抓取最新更新、按主题提炼要点并附上原文链接。',
-                        'Copy the prompt below into chat so AI fetches updates across your feeds and summarizes key takeaways with links.',
+                        '点顶部「复制今日简报指令」或卡片内「复制单源提炼指令」，粘贴到对话即可让助手自动抓取最新更新、提炼要点并附原文链接。',
+                        'Copy the daily or per-feed prompt into chat so AI fetches updates across your feeds and summarizes key takeaways with source links.',
                     ),
                     prompt: rssText(
                         '汇总我订阅源里今天的重点更新，按主题提炼要点并附上原文链接',
@@ -242,13 +258,25 @@ window.__ModuleLoader__.load({ id: 'dsh-rss', factory: require => {
                     promptLabel: rssText('复制：汇总今日重点更新', 'Copy: Summarize today’s updates'),
                 },
                 {
-                    id: 'opml',
-                    selector: '#' + rssTabsId + '-tab-transfer',
+                    id: 'catalog-opml',
+                    selector: '#' + rssTabsId + '-tab-catalog',
+                    fallback: '[data-tour="rss-add"]',
                     side: 'bottom',
-                    title: rssText('OPML 批量导入与导出备份', 'OPML batch import & backup'),
+                    title: rssText('推荐来源目录、自定义添加与 OPML 迁移', 'Recommended catalog, custom URLs & OPML'),
                     desc: rssText(
-                        '从其他阅读器迁移时可在「导入与导出」先预览新增与重复项再确认导入，也可随时一键导出 OPML 备份。',
-                        'Preview new and duplicate feeds before importing an OPML file, or export an OPML backup anytime.',
+                        '在「推荐订阅源」先预览近期文章再订阅，点「添加订阅」输入任意原生 RSS/Atom 地址，或在「导入与导出」预览导入/备份 OPML。',
+                        'Preview sources in Recommended feeds before subscribing, add custom RSS/Atom URLs, or preview-import and export OPML backups.',
+                    ),
+                },
+                {
+                    id: 'theme-font',
+                    selector: '.dsh-style-switcher',
+                    fallback: '[data-dsh-header]',
+                    side: 'bottom',
+                    title: rssText('13 套工作台风格与 8 套字体搭配', '13 workbench styles & 8 font pairings'),
+                    desc: rssText(
+                        '右上角可一键切换 13 套明亮风格（原生清透 / 铅字晨报 / 波普孔版 / 宋韵朱砂 / 护眼墨水屏等）与 8 套中英文字体搭配，跨插件实时同步。',
+                        'Switch between 13 bright themes (Native, Gazette, Riso Zine, Song Xuan, E-Ink…) and 8 font pairings synced across plugins.',
                     ),
                 },
             ];
@@ -305,6 +333,8 @@ window.__ModuleLoader__.load({ id: 'dsh-rss', factory: require => {
                         setQuery,
                         category,
                         setCategory,
+                        viewMode: feedsViewMode,
+                        setViewMode: setFeedsViewMode,
                         writable,
                         busy,
                         run,

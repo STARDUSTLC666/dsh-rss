@@ -1,8 +1,8 @@
 # dsh-rss 工作台 / Workbench
 
-RSS 主工作台，订阅与目录分区、来源详情与分类清楚展示；保存的来源可主动预览最多五篇文章。
+RSS 主工作台，默认「编辑部画报桌面（Editorial Zine Spread）」12 栏非对称画报排布 + View Transitions 原地展开居中阅读单（可一键切换回经典「列表」双栏视图），并集成推荐目录先预览后订阅、AI 简报指令复制、13 套风格 + 8 套字体与 `? 引导` 分步导览；保存的来源可主动预览最多五篇文章。
 
-RSS workbench with subscriptions, discovery, categories and source details; manually preview up to five articles from saved feeds.
+RSS workbench featuring a default Editorial Zine Spread (asymmetric 12-column layout with native View Transitions expand/collapse into a centered Reader Sheet, plus 1-click classic List split view), categorized discovery, 1-click AI briefing prompts, 13 themes + 8 fonts, and interactive `? Tour`; manually preview up to five articles from saved feeds.
 
 ## 使用 / Use
 
