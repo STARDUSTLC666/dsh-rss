@@ -1,6 +1,6 @@
 {
   "name": "dsh-rss",
-  "version": "0.12.1",
+  "version": "0.12.2",
   "description": "DeepSeek Harness RSS / Atom 订阅工作台：默认编辑部画报桌面（12 栏非对称封面排布 + 原生 View Transitions 原地展开居中阅读单，支持一键切回经典列表）、分类推荐先预览后订阅、多源检索与 OPML 预览导入导出，内置 13 套明亮风格与 8 套字体搭配。",
   "type": "module",
   "main": "lib/index.js",

@@ -18,6 +18,7 @@ function RssExternalLink({ href, children, className, ...props }) {
 }
 
 function RssArticlePreview({ value, loading = false }) {
+  const previewLabel = t('previewArticles');
   return h(
     'section',
     { className: 'rss-section rss-articles' },
@@ -33,8 +34,8 @@ function RssArticlePreview({ value, loading = false }) {
           'p',
           { className: 'rss-muted' },
           rssText(
-            '点击“检查并预览”后获取近期条目，不会因打开此页而访问来源。',
-            'Choose Check and preview to fetch recent entries. Opening this page does not contact the source.',
+            `点击“${previewLabel}”后获取近期条目，不会因打开此页而访问来源。`,
+            `Choose “${previewLabel}” to fetch recent entries. Opening this page does not contact the source.`,
           ),
         )
       : h(
@@ -423,7 +424,7 @@ function RssFeedBrowser({
                 icon: 'refresh',
                 spinning: busy === 'previewFeed' && active?.id === feed.id,
                 disabled: !!busy,
-                label: rssText('检查并预览', 'Check and preview'),
+                label: t('previewArticles'),
                 'data-rss-quick-action': 'preview',
                 onClick: () => {
                   setActiveId(feed.id);
@@ -493,7 +494,7 @@ function RssFeedBrowser({
                         setPreviews(old => ({ ...old, [active.id]: value.feedPreview })),
                       ),
                   },
-                  busy === 'previewFeed' ? t('saving') : rssText('检查并预览', 'Check and preview'),
+                  busy === 'previewFeed' ? t('saving') : t('previewArticles'),
                 ),
                 h(
                   W.Button,
@@ -735,7 +736,7 @@ function RssFeedBrowser({
             icon: 'refresh',
             spinning: busy === 'previewFeed' && activeId === feed.id,
             disabled: !!busy,
-            label: rssText('检查并预览', 'Check and preview'),
+            label: t('previewArticles'),
             'data-rss-quick-action': 'preview',
             onClick: () => {
               setActiveId(feed.id);
@@ -855,7 +856,7 @@ function RssFeedBrowser({
                     );
                   },
                 },
-                busy === 'previewFeed' ? t('saving') : rssText('检查更新', 'Check updates'),
+                busy === 'previewFeed' ? t('saving') : t('previewArticles'),
               ),
               h(
                 W.Button,

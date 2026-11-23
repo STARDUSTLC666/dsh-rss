@@ -1,5 +1,10 @@
 # 更新记录
 
+## 0.12.2 (2026-11-24)
+
+- 统一推荐目录、订阅列表和画报阅读页的「预览并检查」按钮，确保中英文提示与按钮一致。
+- Use **Preview and check** consistently in the recommended catalog, subscription list and reader, and align empty-state instructions in both languages.
+
 ## 0.12.1 (2026-11-23)
 
 - 加固桌面端认证路由守卫：对精确来源 `Origin: dsh-app://app` 同步放行 `Sec-Fetch-Site` 校验（保持浏览器同源与跨站拦截不变）。
