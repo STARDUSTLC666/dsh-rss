@@ -2,6 +2,8 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, existsSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { resolveConfig } from '../lib/config.js'
+import { recommendedSources } from '../lib/catalog.js'
 
 const require = createRequire(import.meta.url)
 
@@ -35,4 +37,14 @@ test('名称与版本正确', () => {
   const pkg = require('../package.json')
   assert.equal(pkg.name, 'dsh-rss')
   assert.match(pkg.version, /^\d+\.\d+\.\d+$/)
+})
+
+test('默认 User-Agent 版本号与 package.json 一致，且全部推荐源均有中英文简介', () => {
+  const pkg = require('../package.json')
+  const cfg = resolveConfig({})
+  assert.equal(cfg.userAgent, `dsh-rss/${pkg.version} (DeepSeek Harness RSS plugin)`)
+  for (const source of recommendedSources) {
+    assert.ok(source.description[0].trim().length > 0, `missing zh description for ${source.id}`)
+    assert.ok(source.description[1].trim().length > 0, `missing en description for ${source.id}`)
+  }
 })

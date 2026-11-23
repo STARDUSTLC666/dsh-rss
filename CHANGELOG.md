@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.12.1 (2026-11-23)
+
+- 加固桌面端认证路由守卫：对精确来源 `Origin: dsh-app://app` 同步放行 `Sec-Fetch-Site` 校验（保持浏览器同源与跨站拦截不变）。
+- 默认 `User-Agent` 改为动态读取 `package.json` 版本号；补齐推荐目录条目 `joho-no-todai-en` 的中英文简介；统一工作台提示与文档中的「添加订阅 / Add feed」按钮文案，修复英文工具表格并补齐 `rss_fetch.incremental`、`allowPrivateNetwork`、`opmlWriteApproval` 配置与参考文档说明。
+- Harden desktop carrier checks so exact `Origin: dsh-app://app` requests are also exempted from `Sec-Fetch-Site` restrictions while preserving browser same-origin guards.
+- Read the package version dynamically for `DEFAULT_USER_AGENT`, add bilingual catalog descriptions for `joho-no-todai-en`, align UI hint & docs copy to **Add feed**, fix the broken English tools table, and document `rss_fetch.incremental`, `allowPrivateNetwork`, and `opmlWriteApproval`.
+
 ## 0.12.0 (2026-11-22)
 
 - **全新默认「编辑部画报桌面（Editorial Zine Spread）」+ 原生 View Transitions 阅读单**：

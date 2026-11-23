@@ -46,8 +46,13 @@ test('carrier preserves JSON/body limits and cancellation without saving', async
 
 test('authenticated browser and desktop origins are checked against the public Host, not the carrier URL', async () => {
   const { backend, request } = fixture()
-  for (const headers of [{ Origin: 'dsh-app://app' }, { Origin: 'http://127.0.0.1:49000', Host: '127.0.0.1:49000', 'Sec-Fetch-Site': 'same-origin' }]) assert.equal((await backend.fetch(request(undefined, headers))).status, 200)
+  for (const headers of [
+    { Origin: 'dsh-app://app' },
+    { Origin: 'dsh-app://app', 'Sec-Fetch-Site': 'cross-site' },
+    { Origin: 'http://127.0.0.1:49000', Host: '127.0.0.1:49000', 'Sec-Fetch-Site': 'same-origin' },
+  ]) assert.equal((await backend.fetch(request(undefined, headers))).status, 200)
   assert.equal((await backend.fetch(request(undefined, { Origin: 'http://127.0.0.1:49001', Host: '127.0.0.1:49000' }))).status, 403)
+  assert.equal((await backend.fetch(request(undefined, { Origin: 'https://evil.example', 'Sec-Fetch-Site': 'cross-site' }))).status, 403)
 })
 
 test('host registration mounts authenticated API separately from the unchanged localhost-only legacy route', () => {

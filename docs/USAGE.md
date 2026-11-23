@@ -32,7 +32,7 @@ dsh plugin --profile web add dsh-rss
 
 推荐目录收录 17 个网站原生 RSS/Atom，按科技资讯、AI 与科研、软件更新、阅读与博客、生活与兴趣分类。可按名称、关键词和内容语言筛选；每个来源可查看原网站与订阅地址。「预览并检查」只抓取所选来源，显示最多 5 篇近期文章；「订阅」通过抓取验证后才保存，已添加的地址显示「已订阅」。目录不会自动订阅、批量抓取或改动原有名称和分类。arXiv 等按发布日更新的源可能有效但没有当前条目。
 
-选择「输入地址」填写自己的 RSS/Atom 地址，名称可留空。分类可选择目录提供的分类、现有分类，也可直接输入自定义分类。新地址通过抓取检查后才会保存；编辑原地址的名称或分类不需要源网站在线。
+选择「添加订阅」填写自己的 RSS/Atom 地址，名称可留空。分类可选择目录提供的分类、现有分类，也可直接输入自定义分类。新地址通过抓取检查后才会保存；编辑原地址的名称或分类不需要源网站在线。
 
 导入可选择不超过 1 MiB 的 OPML 文件或粘贴文本。先检查预览，再点击确认；跳过的地址会说明原因。已有订阅发生变化时重新预览即可，原输入仍保留。导出通过浏览器下载 OPML，不会修改订阅。
 
@@ -61,7 +61,9 @@ dsh plugin --profile web remove dsh-rss
     # fakeIpDnsFallback: true          # 默认在 Fake-IP 下查询并校验真实公网地址
     timeoutMs: 15000                     # 抓取超时（毫秒，默认 15000）
     # maxBodyBytes: 5242880              # 订阅源体积上限（默认 5MB，防超大响应）
-    # userAgent: 'dsh-rss/0.2.0'         # 自定义抓取 UA
+    # userAgent: 'dsh-rss/0.12.1 (DeepSeek Harness RSS plugin)'  # 自定义抓取 UA（默认自动匹配当前包版本）
+    # allowPrivateNetwork: false         # 默认拒绝私网/回环地址；可信内网源需显式开启
+    # opmlWriteApproval: true            # 默认导出 OPML 到文件前要求人工确认；设为 false 跳过
     # feedsYaml: |                        # 可选：预置订阅列表（也可用 rss_add 工具添加）
     #   - url: https://example.com/feed.xml
     #     name: 示例订阅
@@ -75,7 +77,7 @@ dsh plugin --profile web remove dsh-rss
 | `rss_list` | 列出已订阅源 | 无 |
 | `rss_add` | 添加订阅（先抓取校验地址） | `url` 必填；`name`/`category` 可选 |
 | `rss_remove` | 删除订阅 | `url` 或 `name` 至少一个 |
-| `rss_fetch` | 抓取解析订阅源，返回源信息与条目（含正文 content） | `url` 或 `name` 至少一个；`limit` 1-100 默认 20 |
+| `rss_fetch` | 抓取解析订阅源，返回源信息与条目（含正文 content） | `url` 或 `name` 至少一个；`limit` 1-100 默认 20；`incremental` 可选（设为 `true` 仅拉取新增条目） |
 | `rss_check` | 校验地址是否为可解析的订阅源 | `url` 必填 |
 | `rss_opml_export` | 导出订阅列表为 OPML 2.0 文本（可写入文件） | `path` 可选 |
 | `rss_opml_import` | 从 OPML 2.0 文本批量导入订阅源 | `opml` 必填 |

@@ -5,6 +5,8 @@
  * @module dsh-rss/config
  */
 
+import { createRequire } from 'node:module'
+
 /** 插件行配置（cordis.patch.yml 里的 config 段，可缺省）。 */
 export interface RssConfig {
   proxyUrl?: string
@@ -34,7 +36,8 @@ export interface ResolvedRssConfig {
 
 const DEFAULT_TIMEOUT_MS = 15000
 const DEFAULT_MAX_BODY_BYTES = 5 * 1024 * 1024
-const DEFAULT_USER_AGENT = 'dsh-rss/0.5.1 (DeepSeek Harness RSS plugin)'
+const pkg = createRequire(import.meta.url)('../package.json') as { version: string }
+export const DEFAULT_USER_AGENT = `dsh-rss/${pkg.version} (DeepSeek Harness RSS plugin)`
 
 function configRecord(config: RssConfig | undefined | null): Record<string, unknown> {
   if (config === undefined || config === null) return {}

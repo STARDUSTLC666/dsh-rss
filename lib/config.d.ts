@@ -29,6 +29,7 @@ export interface ResolvedRssConfig {
     allowPrivateNetwork: boolean;
     opmlWriteApproval: boolean;
 }
+export declare const DEFAULT_USER_AGENT: string;
 /**
  * 解析并校验配置。
  * @param config - 插件行配置（可能为 undefined/null）。

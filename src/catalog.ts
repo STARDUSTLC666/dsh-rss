@@ -20,7 +20,7 @@ export interface RecommendedSource {
 // Descriptions are original catalog copy. Article content belongs to publishers.
 // These are native RSS/Atom endpoints, without an RSSHub instance dependency.
 export const recommendedSources: readonly RecommendedSource[] = [
-  { id: 'joho-no-todai-en', name: 'Joho no Todai', url: 'https://joho-todai.com/en/rss/', website: 'https://joho-todai.com/', category: 'technology', language: 'en', description: ['', ''] },
+  { id: 'joho-no-todai-en', name: 'Joho no Todai', url: 'https://joho-todai.com/en/rss/', website: 'https://joho-todai.com/', category: 'technology', language: 'en', description: ['英文科技资讯与数字观察（官方英文 RSS）。', 'English technology news and digital insights (official English RSS).'] },
   { id: 'ithome', name: 'IT之家', url: 'https://www.ithome.com/rss/', website: 'https://www.ithome.com/', category: 'technology', language: 'zh', description: ['数码产品、科技行业与软件资讯。', 'Consumer devices, technology and software news.'] },
   { id: 'sspai', name: '少数派', url: 'https://sspai.com/feed', website: 'https://sspai.com/', category: 'technology', language: 'zh', description: ['数字生活、效率工具与使用经验。', 'Digital life, productivity tools and practical guides.'] },
   { id: 'ifanr', name: '爱范儿', url: 'https://www.ifanr.com/feed', website: 'https://www.ifanr.com/', category: 'technology', language: 'zh', description: ['科技产品、设计与数字生活观察。', 'Technology products, design and digital life.'] },

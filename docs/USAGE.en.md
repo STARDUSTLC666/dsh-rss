@@ -30,7 +30,7 @@ Open **RSS subscriptions** from the sidebar (or **Settings → RSS subscriptions
 
 The catalog lists 17 publisher-hosted RSS/Atom feeds in Technology news, AI and research, Software updates, Reading and blogs, and Life and interests. Filter by source, keywords and content language. Cards link to the publisher and show the feed URL. Preview and check fetches only the selected source and shows up to five recent articles. Subscribe checks the feed before saving, and existing URLs show Subscribed. Browsing the catalog does not subscribe, fetch every site, or rename or recategorize existing subscriptions. Feeds such as arXiv can be valid but empty on non-publication days.
 
-Enter a URL accepts your own RSS/Atom address; the name and category are optional. Pick an existing or suggested category, or type your own. New URLs are fetched and checked before saving. Renaming or recategorizing an unchanged URL works without the remote feed being online.
+**Add feed** accepts your own RSS/Atom address; the name and category are optional. Pick an existing or suggested category, or type your own. New URLs are fetched and checked before saving. Renaming or recategorizing an unchanged URL works without the remote feed being online.
 
 Choose an OPML file (up to 1 MiB) or paste its text, review the preview, then confirm. Rejected URLs include a reason. If another page or tool changed the list, preview again without retyping. Export downloads OPML without changing subscriptions.
 
@@ -59,7 +59,9 @@ Override the plugin row in your profile's `cordis.patch.yml` (the plugin also lo
     # fakeIpDnsFallback: true          # validate real public DNS answers when Fake-IP is detected
     timeoutMs: 15000                     # fetch timeout in ms (default 15000)
     # maxBodyBytes: 5242880              # response size cap (default 5MB, guards oversized responses)
-    # userAgent: 'dsh-rss/0.2.0'         # custom fetch UA
+    # userAgent: 'dsh-rss/0.12.1 (DeepSeek Harness RSS plugin)'  # custom fetch UA (defaults to current package version)
+    # allowPrivateNetwork: false         # refuse private/loopback targets by default; set true for trusted internal feeds
+    # opmlWriteApproval: true            # require user approval before writing OPML to a file; set false to opt out
     # feedsYaml: |                        # optional: pre-seed subscriptions (or use the rss_add tool)
     #   - url: https://example.com/feed.xml
     #     name: My feed
@@ -73,11 +75,10 @@ Override the plugin row in your profile's `cordis.patch.yml` (the plugin also lo
 | `rss_list` | List subscribed feeds | none |
 | `rss_add` | Add a subscription (fetches and validates the URL first) | `url` required; `name`/`category` optional |
 | `rss_remove` | Remove a subscription | `url` or `name`, at least one |
-| `rss_fetch` | Fetch and parse a feed, returning feed info and entries (with full `content`) | `url` or `name`, at least one; `limit` 1-100, default 20 |
+| `rss_fetch` | Fetch and parse a feed, returning feed info and entries (with full `content`) | `url` or `name`, at least one; `limit` 1-100, default 20; `incremental` optional (`true` fetches only new entries) |
 | `rss_check` | Validate that a URL is a parseable feed | `url` required |
 | `rss_opml_export` | Export subscriptions as OPML 2.0 text (optionally write a file) | `path` optional |
 | `rss_opml_import` | Bulk-import subscriptions from OPML 2.0 text | `opml` required |
-
 | `rss_search` | Search across feeds | `query` required; optional feed, date and limit filters |
 | `rss_health` | Check configuration, feeds and cursors offline | none |
 
