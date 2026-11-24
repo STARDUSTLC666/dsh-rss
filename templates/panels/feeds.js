@@ -1285,10 +1285,12 @@ const RSS_WORKBENCH_CSS = `
 
 .rss-workbench .rss-catalog-filters {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
 }
 
 .rss-workbench .rss-filter-field {
   display: grid;
+  align-content: start;
   gap: 4px;
   min-width: 0;
 }

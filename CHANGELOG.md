@@ -1,5 +1,10 @@
 # 更新记录
 
+## 0.12.3 (2026-11-25)
+
+- 修复推荐目录双列筛选表单对齐：为 `.rss-catalog-filters` 补充 `align-items: start`、为 `.rss-filter-field` 补充 `align-content: start`，保持两列筛选控件顶部齐平。
+- Fix two-column catalog filter alignment by adding `align-items: start` to `.rss-catalog-filters` and `align-content: start` to `.rss-filter-field`.
+
 ## 0.12.2 (2026-11-24)
 
 - 统一推荐目录、订阅列表和画报阅读页的「预览并检查」按钮，确保中英文提示与按钮一致。
