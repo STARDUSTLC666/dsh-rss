@@ -24,7 +24,7 @@ RSS / Atom workbench for DeepSeek Harness (`>=0.2.2-rc.3`): opens in the **Edito
 | **Editorial Zine Spread** | 12-column asymmetric magazine desk (Lead Hero + Feature Dispatches + Bento Grid) with `startViewTransition()` expand/collapse into a centered Reader Sheet, plus 1-click **List** toggle |
 | **Preview Before Subscribing** | Categorized publisher directories and custom RSS / Atom URLs — browsing never auto-subscribes or fetches in the background |
 | **Search, Filters & OPML** | Floating category filter pills, cross-feed instant search, and OPML preview import/export backups |
-| **AI Briefings & Synced UI** | 1-click copyable daily/per-feed AI briefing prompts, `? Tour` walkthroughs, 13 bright styles & 8 fonts (`YouYuan Mono` default) |
+| **AI Briefings & Synced UI** | 1-click copyable daily/per-feed AI briefing prompts, `? Tour` walkthroughs, 13 bright styles & 8 fonts (style-matched font by default) |
 
 <details>
 <summary>See a workbench example (Editorial Zine Spread)</summary>

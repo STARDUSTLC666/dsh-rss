@@ -312,7 +312,7 @@ test('RSS Workbench UI v2 lazily integrates @deepseek-ai/dsh-client-ui-primitive
   assert.ok(env.getPrimitivesRequireCount() > 0, 'host primitives resolved lazily during render')
   assert.equal(pageTree.type, 'section')
   assert.equal(pageTree.props['data-dsh-style'], 'harness')
-  assert.equal(pageTree.props['data-dsh-font'], 'arcade')
+  assert.equal(pageTree.props['data-dsh-font'], 'auto')
   assert.equal(pageTree.props['data-main'], 'true')
 
   const fontTrigger = env.findAll(pageTree, n => n.type === 'HostButton' && String(n.props?.className || '').includes('dsh-font-trigger'))[0]
@@ -368,7 +368,7 @@ test('13-style theme switcher & 8-font switcher sync localStorage, custom events
     Array.from(W.DSH_STYLES, s => s.id),
     ['harness', 'cream', 'claude', 'pixel8bit', 'mint', 'glass', 'eink', 'blueprint', 'risograph', 'win98', 'songhui', 'frutiger', 'gazette'],
   )
-  assert.equal(W.DSH_DEFAULT_FONT, 'arcade')
+  assert.equal(W.DSH_DEFAULT_FONT, 'auto')
   assert.deepEqual(
     Array.from(W.DSH_FONTS, f => f.id),
     ['arcade', 'auto', 'songkai', 'fangsong', 'poster', 'retro98', 'serif', 'modern'],
@@ -402,7 +402,7 @@ test('13-style theme switcher & 8-font switcher sync localStorage, custom events
   assert.ok(frameNode)
   frameNode.props.ref(innerDialogDom)
   assert.equal(outerDialogDom.getAttribute('data-dsh-style'), 'harness')
-  assert.equal(outerDialogDom.getAttribute('data-dsh-font'), 'arcade')
+  assert.equal(outerDialogDom.getAttribute('data-dsh-font'), 'auto')
   assert.equal(outerDialogDom.getAttribute('data-window-drag-exclude'), '')
 
   for (const styleId of ['cream', 'claude', 'pixel8bit', 'mint', 'glass', 'eink', 'blueprint', 'risograph', 'win98', 'songhui', 'frutiger', 'gazette', 'harness']) {
@@ -417,7 +417,7 @@ test('13-style theme switcher & 8-font switcher sync localStorage, custom events
       env.React.createElement(W.Page, { workbench: true, title: 'RSS 订阅', icon: 'rss' }, 'content'),
     ))
     assert.equal(page.props['data-dsh-style'], styleId)
-    assert.equal(page.props['data-dsh-font'], 'arcade')
+    assert.equal(page.props['data-dsh-font'], 'auto')
   }
 
   for (const fontId of ['auto', 'songkai', 'fangsong', 'poster', 'retro98', 'serif', 'modern', 'arcade']) {
