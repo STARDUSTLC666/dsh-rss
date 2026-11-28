@@ -1,6 +1,6 @@
 # 更新记录
 
-## Unreleased
+## 0.13.0 (2026-11-28)
 
 - 修复单个订阅的 `proxyUrl` 被忽略或在编辑时丢失的问题。工具和工作台现支持逐源 HTTP、HTTPS 与 SOCKS5 代理，OPML 导出不包含代理地址。
 - Honor per-feed proxy settings in tools and workbench requests, preserve them when editing subscriptions, and support explicit SOCKS5 proxies.
