@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
-for (const mode of ['direct', 'proxy-tls', 'proxy-abort', 'direct-https', 'proxy-https', 'proxy-bad-cert']) {
+for (const mode of ['direct', 'proxy-tls', 'proxy-abort', 'direct-https', 'proxy-https', 'proxy-bad-cert', 'socks-https', 'socks-bad-cert']) {
   test('RSS ' + mode + ' preserves request results, TLS checks and socket error isolation (#2)', () => {
     const result = spawnSync(process.execPath, [fileURLToPath(new URL('./fixtures/connection-error-child.mjs', import.meta.url)), mode], {
       encoding: 'utf8', timeout: 6000,

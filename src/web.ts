@@ -4,7 +4,7 @@ import { Readable } from 'node:stream'
 import { EventEmitter } from 'node:events'
 import type { RssSettingsScope } from './tools.js'
 import type { ResolvedRssConfig } from './config.js'
-import { sameFeedUrl, type Feed } from './feeds.js'
+import { publicFeed, sameFeedUrl, type Feed } from './feeds.js'
 import { assertHttpUrl, type FetchLike, type DnsLookupLike } from './network.js'
 import { buildOpml, parseOpml, importOpmlFeeds } from './opml.js'
 import { feedId, subscriptionSnapshot, mutateSubscriptions, recentFeedChecks, readRssFeed, SubscriptionError } from './subscriptions.js'
@@ -92,7 +92,7 @@ export function createRssSettingsBackend(
   const snapshot = () => {
     const state = subscriptionSnapshot(scope)
     const checks = recentFeedChecks(scope)
-    return { revision: state.revision, writable: writable(), feeds: state.feeds.map(feed => ({ ...feed, id: feedId(feed.url), check: checks.get(feed.url) ?? null })),
+    return { revision: state.revision, writable: writable(), feeds: state.feeds.map(feed => ({ ...publicFeed(feed), id: feedId(feed.url), check: checks.get(feed.url) ?? null })),
       catalog: { categories: sourceCategories, sources: recommendedSources.map(source => ({ ...source,
         subscribed: state.feeds.some(feed => sameFeedUrl(feed.url, source.url)), check: checks.get(source.url) ?? null })) } }
   }
@@ -101,9 +101,9 @@ export function createRssSettingsBackend(
     if (!feed) throw new SubscriptionError('这个订阅已被移除，请刷新列表。', 409, 'conflict')
     return feed
   }
-  const check = (url: string, signal: AbortSignal) => {
+  const check = (url: string, signal: AbortSignal, subscription?: Feed) => {
     assertHttpUrl(url)
-    return readRssFeed(scope, url, config, { signal }, options.fetchImpl, options.lookupImpl)
+    return readRssFeed(scope, url, config, { signal }, options.fetchImpl, options.lookupImpl, subscription)
   }
   const preview = (args: Record<string, unknown>) => {
     const opml = text(args, 'opml')
@@ -113,7 +113,8 @@ export function createRssSettingsBackend(
     const outcome = importOpmlFeeds(state.feeds, parseOpml(opml), updateExisting)
     // Never return credentials embedded in rejected URLs.
     const skipped = outcome.skipped.map(item => ({ ...item, url: item.url.replace(/(https?:\/\/)[^/@\s]+@/gi, '$1***@') }))
-    return { ...outcome, feeds: undefined, skipped, revision: state.revision,
+    const duplicates = outcome.duplicates.map(({ url, before, after }) => ({ url, before: publicFeed(before), after: publicFeed(after) }))
+    return { ...outcome, feeds: undefined, added: outcome.added.map(publicFeed), duplicates, skipped, revision: state.revision,
       token: feedId(JSON.stringify([state.revision, opml, updateExisting])) }
   }
 
@@ -166,14 +167,14 @@ export function createRssSettingsBackend(
       if (current.revision !== revision) throw new SubscriptionError('订阅列表已经变化，请刷新后再保存；你的输入已保留。', 409, 'conflict')
       const old = action === 'edit' ? find(current.feeds, text(args, 'id')) : undefined
       let defaultName = ''
-      if (!old || !sameFeedUrl(old.url, url)) defaultName = (await check(url, signal)).parsed.feed.title
+      if (!old || !sameFeedUrl(old.url, url)) defaultName = (await check(url, signal, old)).parsed.feed.title
       result = await mutateSubscriptions(scope, feeds => {
         signal.throwIfAborted()
         const previous = action === 'edit' ? find(feeds, text(args, 'id')) : undefined
         if (feeds.some(feed => feed !== previous && sameFeedUrl(feed.url, url))) {
           throw new SubscriptionError('这个地址已经订阅，请编辑现有订阅。', 409, 'duplicate')
         }
-        const next = { url, name: text(args, 'name') || defaultName, category: text(args, 'category') }
+        const next = { ...previous, url, name: text(args, 'name') || defaultName, category: text(args, 'category') }
         return { feeds: previous ? feeds.map(feed => feed === previous ? next : feed) : [...feeds, next], value: { saved: next.name || next.url } }
       }, revision)
     }

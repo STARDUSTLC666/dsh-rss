@@ -48,6 +48,31 @@ test('settings endpoint returns the shared list, without raw configuration', asy
   assert.equal(result.snapshot.feedsYaml, undefined)
 })
 
+test('feed proxy settings survive tool, workbench and OPML edits and stay private in their outputs', async t => {
+  const f = await fixture(t)
+  const proxyUrl = 'socks5://reader:private-proxy-token@127.0.0.1:10800'
+  f.scope.yaml = serializeFeeds([{ ...initial, proxyUrl }])
+  const hidden = value => assert.doesNotMatch(JSON.stringify(value), /private-proxy-token|127\.0\.0\.1:10800/)
+  const tools = buildRssTools(resolveConfig({}), f.scope, async () => new Response(XML))
+  const run = (name, args = {}) => tools.find(tool => tool.name === name).execute(args)
+  hidden(await run('rss_list'))
+  hidden(await run('rss_add', { url: initial.url, name: 'Renamed' }))
+  const snap = (await f.request()).snapshot
+  hidden(snap)
+  const edited = await f.request({ action: 'edit', id: snap.feeds[0].id, revision: snap.revision,
+    url: initial.url, name: 'Workbench', category: 'Updated' })
+  assert.equal(edited.status, 200)
+  hidden(edited)
+  const opml = buildOpml([{ ...initial, name: 'Imported' }])
+  const { preview } = await f.request({ action: 'preview', opml, updateExisting: true })
+  hidden(preview)
+  assert.equal(preview.duplicates[0].after.name, 'Imported')
+  hidden(await run('rss_opml_import', { opml }))
+  assert.deepEqual(parseFeedsYaml(f.scope.yaml), [{ ...initial, name: 'Imported', proxyUrl }])
+  hidden(await run('rss_opml_export'))
+  hidden(await run('rss_remove', { url: initial.url }))
+})
+
 test('the legacy route still rejects Origin-less writes even with the RSS request marker', async t => {
   const f = await fixture(t), before = f.scope.yaml
   const result = await f.request({ action: 'add' }, { Origin: '', 'X-DSH-RSS': '1' })

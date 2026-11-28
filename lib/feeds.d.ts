@@ -3,7 +3,14 @@ export interface Feed {
     url: string;
     name: string;
     category: string;
+    /** Private transport setting; never include in tool, web or OPML responses. */
+    proxyUrl?: string;
 }
+export declare function publicFeed({ url, name, category }: Feed): {
+    url: string;
+    name: string;
+    category: string;
+};
 /**
  * 解析 feedsYaml 为订阅数组。空文本返回空数组；非法 YAML / 缺 url 抛中文错误。
  */

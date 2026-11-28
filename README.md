@@ -59,7 +59,7 @@ dsh plugin --profile desktop add dsh-rss
 
 ## 开始前要知道
 
-- 外部订阅源可达性取决于目标网站与当前网络环境，代理为可选配置。
+- 单个源访问失败时，可单独配置 HTTP、HTTPS 或 SOCKS5 代理。[查看 Hacker News 配置示例](docs/USAGE.md#代理与-vpn)。
 - 出版者收录与移除规则见 [目录规则](docs/CATALOG-POLICY.md)；详细配置与排错见 [完整说明](https://github.com/STARDUSTLC666/dsh-rss/blob/master/docs/REFERENCE.zh.md)。
 
 ## 插件更新

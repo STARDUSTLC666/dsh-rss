@@ -5,10 +5,12 @@ import https from 'node:https'
 import { readFileSync } from 'node:fs'
 import assert from 'node:assert/strict'
 import { createFeedTransport } from '../../lib/proxy-fetch.js'
+import { startSocksFixture } from './socks-server.mjs'
 
 const mode = process.argv[2]
-const successful = ['direct-https', 'proxy-https'].includes(mode)
-const secureFixture = successful || mode === 'proxy-bad-cert'
+const successful = ['direct-https', 'proxy-https', 'socks-https'].includes(mode)
+const badCert = mode.endsWith('-bad-cert')
+const secureFixture = successful || badCert
 const connectToFixture = net.connect
 const upstreams = new Set()
 const clientSockets = new Set()
@@ -42,6 +44,8 @@ proxy.on('connect', (_req, socket) => {
   if (mode === 'proxy-tls') setTimeout(() => socket.destroy(), 15)
 })
 let proxyUrl = '', port = 443
+let socks
+const socksRequests = []
 let origin
 if (secureFixture) {
   origin = https.createServer({ key: readFileSync(new URL('./rss-test-key.pem', import.meta.url)), cert: readFileSync(new URL('./rss-test-cert.pem', import.meta.url)) }, (_req, res) => res.end('secure RSS fixture'))
@@ -49,7 +53,10 @@ if (secureFixture) {
   await new Promise(resolve => origin.listen(0, '127.0.0.1', resolve))
   port = origin.address().port
 }
-if (mode.startsWith('proxy-')) {
+if (mode.startsWith('socks-')) {
+  socks = await startSocksFixture(origin, socksRequests)
+  proxyUrl = socks.url
+} else if (mode.startsWith('proxy-')) {
   await new Promise(resolve => proxy.listen(0, '127.0.0.1', resolve))
   proxyUrl = 'http://127.0.0.1:' + proxy.address().port
 } else if (!secureFixture) {
@@ -58,7 +65,7 @@ if (mode.startsWith('proxy-')) {
   port = reserve.address().port
   await new Promise(resolve => reserve.close(resolve))
 }
-const target = new URL('https://' + (mode === 'proxy-bad-cert' ? 'wrong.example' : 'feed.example') + ':' + port + '/rss')
+const target = new URL('https://' + (badCert ? 'wrong.example' : 'feed.example') + ':' + port + '/rss')
 const transport = createFeedTransport(target, proxyUrl, [{ address: '127.0.0.1', family: 4 }])
 let rejected = false, failure
 try {
@@ -66,8 +73,12 @@ try {
   assert.equal(await response.text(), 'secure RSS fixture')
 } catch (error) { rejected = true; failure = error }
 assert.equal(rejected, !successful, 'the connection outcome must match the expected TLS policy: ' + failure)
-if (mode === 'proxy-bad-cert') assert.match(String(failure?.cause?.code), /ERR_TLS_CERT_ALTNAME_INVALID/)
+if (badCert) assert.match(String(failure?.cause?.code), /ERR_TLS_CERT_ALTNAME_INVALID/)
 await transport.dispose()
+if (socks) {
+  assert.deepEqual(socksRequests, [{ address: '7f000001', port }])
+  await socks.close()
+}
 for (const socket of proxySockets) socket.destroy()
 for (const socket of upstreams) socket.destroy()
 if (proxy.listening) await new Promise(resolve => proxy.close(resolve))

@@ -59,7 +59,7 @@ For the web profile, replace `desktop` with `web` and restart DSH. Requires DSH 
 
 ## Before you start
 
-- Feed reachability depends on external publishers and your network; proxy setup is optional.
+- A single feed can use its own HTTP, HTTPS or SOCKS5 proxy. [Hacker News example](docs/USAGE.en.md#proxy).
 - Publisher listing and removal: [catalog policy](docs/CATALOG-POLICY.en.md); full configuration: [full reference](https://github.com/STARDUSTLC666/dsh-rss/blob/master/docs/REFERENCE.en.md).
 
 ## Plugin updates

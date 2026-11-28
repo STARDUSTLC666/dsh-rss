@@ -100,7 +100,22 @@ Harness 0.1.7 把订阅列表和读取游标保存在当前 profile 的 `rss` �
 
 ## 代理与 VPN
 
-Windows 上默认读取已启用的手动系统代理，尊重协议与绕过列表；不执行 PAC 脚本，也不修改系统设置。`proxyUrl` 显式配置优先；`useSystemProxy: false` 可关闭自动读取。其他平台仍可通过 `proxyUrl` 配置 HTTP(S) 代理。这些代理仅作用于本插件。
+每个订阅可以在 `feedsYaml` 里指定自己的 `proxyUrl`。省略时使用插件级 `config.proxyUrl`。两者都留空时，Windows 默认读取已启用的手动 HTTP(S) 系统代理并遵循绕过列表。设置 `useSystemProxy: false` 可关闭自动读取。
+
+下面的配置只让 Hacker News 使用本地 SOCKS5 端口，其他源直连。请按代理软件实际开放的端口填写完整地址，HTTP 或混合端口可用 `http://127.0.0.1:7890`，HTTPS 代理用 `https://`。设置后可用 `rss_fetch(name="Hacker News")` 或工作台的「预览并检查」验证。
+
+```yaml
+- id: rss
+  name: dsh-rss
+  config:
+    useSystemProxy: false
+    feedsYaml: |
+      - url: https://news.ycombinator.com/rss
+        name: Hacker News
+        proxyUrl: socks5://127.0.0.1:10800
+      - url: https://nodejs.org/en/feed/blog.xml
+        name: Node.js Blog
+```
 
 当系统 DNS 返回 VPN 的 Fake-IP（`198.18.0.0/15`）时，默认只向 [Cloudflare HTTPS DNS](https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/make-api-requests/dns-json/) 查询订阅源域名；服务不可用时尝试 Google HTTPS DNS。查询不会发送订阅源路径、正文、密钥或订阅列表，回答仍须通过公网地址检查；实际连接固定到检查过的地址。`fakeIpDnsFallback: false` 可关闭该兼容方式。普通公网 DNS、私网 DNS 和 IP 字面量不会触发此查询。可信内网订阅仍需单独显式配置 `allowPrivateNetwork: true`。
 

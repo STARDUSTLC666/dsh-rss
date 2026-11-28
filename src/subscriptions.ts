@@ -1,8 +1,8 @@
 /** Shared subscription storage for tools and the settings panel. */
 import { createHash } from 'node:crypto'
-import { parseFeedsYaml, serializeFeeds, type Feed } from './feeds.js'
+import { parseFeedsYaml, sameFeedUrl, serializeFeeds, type Feed } from './feeds.js'
 import type { RssSettingsScope } from './tools.js'
-import type { ResolvedRssConfig } from './config.js'
+import { validateProxyUrl, type ResolvedRssConfig } from './config.js'
 import type { RssToolExecution } from './execution.js'
 import { fetchFeedXml, type FetchLike, type DnsLookupLike } from './network.js'
 import { parseFeed } from './parser.js'
@@ -60,7 +60,7 @@ export function recentFeedChecks(scope: RssSettingsScope): Map<string, FeedCheck
 /** Same network boundary, parsing and status for tool calls and manual checks. */
 export async function readRssFeed(
   scope: RssSettingsScope, url: string, config: ResolvedRssConfig, exec?: RssToolExecution,
-  fetchImpl?: FetchLike, lookupImpl?: DnsLookupLike,
+  fetchImpl?: FetchLike, lookupImpl?: DnsLookupLike, subscription?: Feed,
 ) {
   const map = recentFeedChecks(scope)
   const save = (check: FeedCheck) => {
@@ -69,7 +69,9 @@ export async function readRssFeed(
     if (map.size > 256) map.delete(map.keys().next().value!)
   }
   try {
-    const { xml, finalUrl } = await fetchFeedXml(url, config, exec, fetchImpl, lookupImpl)
+    const feed = subscription ?? subscriptionSnapshot(scope).feeds.find(item => sameFeedUrl(item.url, url))
+    const network = feed?.proxyUrl ? { ...config, proxyUrl: validateProxyUrl(feed.proxyUrl) } : config
+    const { xml, finalUrl } = await fetchFeedXml(url, network, exec, fetchImpl, lookupImpl)
     const parsed = parseFeed(xml, finalUrl)
     save({ checkedAt: new Date().toISOString(), ok: true, title: parsed.feed.title, entryCount: parsed.entries.length })
     return { parsed, finalUrl }

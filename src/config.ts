@@ -39,6 +39,21 @@ const DEFAULT_MAX_BODY_BYTES = 5 * 1024 * 1024
 const pkg = createRequire(import.meta.url)('../package.json') as { version: string }
 export const DEFAULT_USER_AGENT = `dsh-rss/${pkg.version} (DeepSeek Harness RSS plugin)`
 
+/** Do not include the address in validation errors: it can contain credentials. */
+export function validateProxyUrl(value: string): string {
+  const address = value.trim()
+  if (!address) return ''
+  try {
+    const url = new URL(address)
+    if (/^(https?|socks5):\/\//i.test(address) && url.hostname && ['http:', 'https:', 'socks5:'].includes(url.protocol)) {
+      decodeURIComponent(url.username)
+      decodeURIComponent(url.password)
+      return address
+    }
+  } catch { /* Report the accepted forms below. */ }
+  throw new Error('proxyUrl 必须是含协议的代理地址，例如 http://127.0.0.1:7890 或 socks5://127.0.0.1:10800；也支持 https://。')
+}
+
 function configRecord(config: RssConfig | undefined | null): Record<string, unknown> {
   if (config === undefined || config === null) return {}
   if (typeof config !== 'object' || Array.isArray(config)) {
@@ -68,15 +83,7 @@ function optionalBoolean(config: Record<string, unknown>, key: string, fallback:
  */
 export function resolveConfig(config: RssConfig | undefined | null): ResolvedRssConfig {
   const cfg = configRecord(config)
-  const proxyUrl = (optionalString(cfg, 'proxyUrl') ?? '').trim()
-  if (proxyUrl !== '') {
-    try {
-      const parsed = new URL(proxyUrl)
-      if ((parsed.protocol !== 'http:' && parsed.protocol !== 'https:') || parsed.hostname === '') throw new Error()
-    } catch {
-      throw new Error('proxyUrl 必须是有效的 http(s) 地址，例如 http://127.0.0.1:7890。')
-    }
-  }
+  const proxyUrl = validateProxyUrl(optionalString(cfg, 'proxyUrl') ?? '')
   let timeoutMs = DEFAULT_TIMEOUT_MS
   if (cfg.timeoutMs !== undefined) {
     if (typeof cfg.timeoutMs !== 'number' || !Number.isInteger(cfg.timeoutMs) || cfg.timeoutMs < 1000 || cfg.timeoutMs > 120000) {

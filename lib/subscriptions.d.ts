@@ -1,6 +1,6 @@
 import { type Feed } from './feeds.js';
 import type { RssSettingsScope } from './tools.js';
-import type { ResolvedRssConfig } from './config.js';
+import { type ResolvedRssConfig } from './config.js';
 import type { RssToolExecution } from './execution.js';
 import { type FetchLike, type DnsLookupLike } from './network.js';
 export declare class SubscriptionError extends Error {
@@ -27,7 +27,7 @@ export interface FeedCheck {
 }
 export declare function recentFeedChecks(scope: RssSettingsScope): Map<string, FeedCheck>;
 /** Same network boundary, parsing and status for tool calls and manual checks. */
-export declare function readRssFeed(scope: RssSettingsScope, url: string, config: ResolvedRssConfig, exec?: RssToolExecution, fetchImpl?: FetchLike, lookupImpl?: DnsLookupLike): Promise<{
+export declare function readRssFeed(scope: RssSettingsScope, url: string, config: ResolvedRssConfig, exec?: RssToolExecution, fetchImpl?: FetchLike, lookupImpl?: DnsLookupLike, subscription?: Feed): Promise<{
     parsed: import("./parser.js").ParsedFeed;
     finalUrl: string;
 }>;

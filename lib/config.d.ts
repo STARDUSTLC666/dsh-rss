@@ -30,6 +30,8 @@ export interface ResolvedRssConfig {
     opmlWriteApproval: boolean;
 }
 export declare const DEFAULT_USER_AGENT: string;
+/** Do not include the address in validation errors: it can contain credentials. */
+export declare function validateProxyUrl(value: string): string;
 /**
  * 解析并校验配置。
  * @param config - 插件行配置（可能为 undefined/null）。

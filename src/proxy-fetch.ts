@@ -3,7 +3,32 @@
  */
 import { Agent, Client, ProxyAgent, buildConnector, fetch as undiciFetch } from 'undici'
 import { isIP, type Socket } from 'node:net'
+import { SocksClient } from 'socks'
 import type { FetchLike, DnsLookupLike } from './network.js'
+
+function socksTransport(proxy: URL, target: URL, address: string, guarded: (connect: buildConnector.connector) => buildConnector.connector): Agent {
+  const connectProxy = guarded(buildConnector({}))
+  const connectTls = guarded(buildConnector({}))
+  const host = proxy.hostname.replace(/^\[|\]$/g, '')
+  const port = Number(proxy.port) || 1080
+  const destination = { host: address, port: Number(target.port) || (target.protocol === 'https:' ? 443 : 80) }
+  const credentials = { userId: decodeURIComponent(proxy.username), password: decodeURIComponent(proxy.password) }
+  return new Agent({ connect(options, callback) {
+    connectProxy({ hostname: host, protocol: 'http:', port: String(port) }, (error, socket) => {
+      if (error) { callback(error, null); return }
+      // SOCKS connects to the validated IP. The HTTP Host and TLS peer name stay those of the feed.
+      void SocksClient.createConnection({
+        command: 'connect', proxy: { host, port, type: 5, ...credentials }, destination, existing_socket: socket,
+      }).then(({ socket: tunnel }) => {
+        if (target.protocol === 'https:') connectTls({ ...options, httpSocket: tunnel }, callback)
+        else callback(null, tunnel)
+      }).catch((cause: unknown) => {
+        socket.destroy()
+        callback(new Error('SOCKS5 代理连接失败', { cause }), null)
+      })
+    })
+  } })
+}
 
 /** One request/redirect hop owns its dispatcher until its body has been read. */
 export function createFeedTransport(url: URL, proxyUrl: string, addresses?: Awaited<ReturnType<DnsLookupLike>>): {
@@ -32,8 +57,9 @@ export function createFeedTransport(url: URL, proxyUrl: string, addresses?: Awai
       if (socket !== undefined) watch(socket)
     }
   }
-  const dispatcher = proxyUrl === ''
-    ? new Agent({ connect: guarded(buildConnector(addresses === undefined ? {} : {
+  function dispatcherForHop() {
+    if (/^socks5:/i.test(proxyUrl)) return socksTransport(new URL(proxyUrl), url, addresses?.[0]?.address ?? hostname, guarded)
+    if (proxyUrl === '') return new Agent({ connect: guarded(buildConnector(addresses === undefined ? {} : {
       lookup: (name, options, callback) => {
         if (name !== hostname) { callback(new Error('Unexpected RSS connection hostname'), '', 4); return }
         const candidates = addresses.filter(entry => !options.family || entry.family === options.family)
@@ -42,7 +68,7 @@ export function createFeedTransport(url: URL, proxyUrl: string, addresses?: Awai
         else callback(null, candidates[0].address, candidates[0].family)
       },
     })) })
-    : new ProxyAgent({ uri: proxyUrl, proxyTunnel: true, requestTls: { servername },
+    return new ProxyAgent({ uri: proxyUrl, proxyTunnel: true, requestTls: { servername },
       clientFactory: (origin, rawOptions) => {
         const options = rawOptions as Client.Options
         const connect = typeof options.connect === 'function' ? options.connect : buildConnector(options.connect ?? {})
@@ -67,6 +93,8 @@ export function createFeedTransport(url: URL, proxyUrl: string, addresses?: Awai
         } })
       },
     })
+  }
+  const dispatcher = dispatcherForHop()
   return {
     fetch: async (input, init) => await undiciFetch(input, { ...init, redirect: 'manual', dispatcher }) as unknown as Response,
     dispose: async () => {

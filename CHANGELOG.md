@@ -1,5 +1,10 @@
 # 更新记录
 
+## Unreleased
+
+- 修复单个订阅的 `proxyUrl` 被忽略或在编辑时丢失的问题。工具和工作台现支持逐源 HTTP、HTTPS 与 SOCKS5 代理，OPML 导出不包含代理地址。
+- Honor per-feed proxy settings in tools and workbench requests, preserve them when editing subscriptions, and support explicit SOCKS5 proxies.
+
 ## 0.12.3 (2026-11-25)
 
 - 修复推荐目录双列筛选表单对齐：为 `.rss-catalog-filters` 补充 `align-items: start`、为 `.rss-filter-field` 补充 `align-content: start`，保持两列筛选控件顶部齐平。

@@ -7,7 +7,7 @@
 
 import { writeFile } from 'node:fs/promises'
 import { type ResolvedRssConfig } from './config.js'
-import { addFeed, findFeedsByName, removeFeed, sameFeedUrl, type Feed } from './feeds.js'
+import { addFeed, findFeedsByName, publicFeed, removeFeed, sameFeedUrl, type Feed } from './feeds.js'
 import { buildOpml, importOpmlFeeds, parseOpml } from './opml.js'
 import { parseFeed } from './parser.js'
 import type { RssToolExecution } from './execution.js'
@@ -487,7 +487,7 @@ export function buildRssTools(
   const cfg = config
 
   const getFeeds = (): Feed[] => subscriptionSnapshot(settingsScope).feeds
-  const readFeed = (url: string, exec?: RssToolExecution) => readRssFeed(settingsScope, url, cfg, exec, fetchImpl, lookupImpl)
+  const readFeed = (url: string, exec?: RssToolExecution, feed?: Feed) => readRssFeed(settingsScope, url, cfg, exec, fetchImpl, lookupImpl, feed)
 
   const rssList: RssToolDefinition = {
     name: 'rss_list',
@@ -499,7 +499,7 @@ export function buildRssTools(
     },
     async execute() {
       const feeds = getFeeds()
-      return { count: feeds.length, feeds }
+      return { count: feeds.length, feeds: feeds.map(publicFeed) }
     },
     timeoutMs: TIMEOUT_MS,
   }
@@ -527,7 +527,7 @@ export function buildRssTools(
       return mutateSubscriptions(settingsScope, current => {
         exec?.signal?.throwIfAborted()
         const { feeds, added, existed } = addFeed(current, url, effectiveName, category)
-        return { feeds, value: { added, existed, count: feeds.length, feedTitle: parsed.feed.title, feedType: parsed.feed.feedType } }
+        return { feeds, value: { added: publicFeed(added), existed, count: feeds.length, feedTitle: parsed.feed.title, feedType: parsed.feed.feedType } }
       })
     },
     timeoutMs: cfg.timeoutMs,
@@ -550,7 +550,7 @@ export function buildRssTools(
       return mutateSubscriptions(settingsScope, current => {
         exec?.signal?.throwIfAborted()
         const { feeds, removed } = removeFeed(current, optionalString(args, 'url'), optionalString(args, 'name'))
-        return { feeds, value: { removed, count: feeds.length } }
+        return { feeds, value: { removed: removed.map(publicFeed), count: feeds.length } }
       })
     },
     timeoutMs: TIMEOUT_MS,
@@ -698,7 +698,7 @@ export function buildRssTools(
         return { feeds: outcome.feeds, value: {
           addedCount: outcome.addedCount, existedCount: outcome.existedCount,
           skippedCount: outcome.skippedCount, totalCount: outcome.feeds.length,
-          added: outcome.added, skipped: outcome.skipped,
+          added: outcome.added.map(publicFeed), skipped: outcome.skipped,
         } }
       })
     },
@@ -742,7 +742,7 @@ export function buildRssTools(
       for (const feed of targets) {
         if (hits.length >= limit) break
         try {
-          const { parsed } = await readFeed(feed.url, exec)
+          const { parsed } = await readFeed(feed.url, exec, feed)
           for (const entry of parsed.entries) {
             const rec = asRecord(entry)
             const at = Date.parse(typeof rec.pubDate === 'string' ? rec.pubDate : '')
@@ -785,7 +785,7 @@ export function buildRssTools(
         ok: parserSelfTest,
         plugin: 'dsh-rss',
         feedCount: feeds.length,
-        proxyConfigured: cfg.proxyUrl !== '',
+        proxyConfigured: cfg.proxyUrl !== '' || feeds.some(feed => Boolean(feed.proxyUrl)),
         cursorCount: Object.keys(parseCursors(cursorsJson)).length,
         parserSelfTest,
         config: { timeoutMs: cfg.timeoutMs, maxBodyBytes: cfg.maxBodyBytes, userAgent: cfg.userAgent },

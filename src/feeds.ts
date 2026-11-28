@@ -10,11 +10,17 @@ export interface Feed {
   url: string
   name: string
   category: string
+  /** Private transport setting; never include in tool, web or OPML responses. */
+  proxyUrl?: string
+}
+
+export function publicFeed({ url, name, category }: Feed) {
+  return { url, name, category }
 }
 
 const FEEDS_HEADER = [
   '# dsh-rss 订阅源列表',
-  '# 每行一个订阅：url 必填，name（显示名）与 category（分类）可选。',
+  '# url 必填；可选 name、category、proxyUrl（如 socks5://127.0.0.1:10800）。',
   '# 也可以直接写字符串：- https://example.com/feed.xml',
   '',
 ]
@@ -29,7 +35,8 @@ export function parseFeedsYaml(text: string): Feed[] {
   try {
     raw = YAML.parse(trimmed)
   } catch (error) {
-    throw new Error('订阅配置（feedsYaml）不是合法的 YAML：' + (error instanceof Error ? error.message : String(error)) + '。请在设置页修正 dsh-rss 的订阅列表。')
+    const line = error instanceof YAML.YAMLParseError ? error.linePos?.[0]?.line : undefined
+    throw new Error('订阅配置（feedsYaml）不是合法的 YAML' + (line ? '（第 ' + line + ' 行）' : '') + '。请在设置页修正 dsh-rss 的订阅列表。')
   }
   if (raw === null || raw === undefined) return []
   if (!Array.isArray(raw)) {
@@ -41,6 +48,7 @@ export function parseFeedsYaml(text: string): Feed[] {
     let url = ''
     let name = ''
     let category = ''
+    let proxyUrl = ''
     if (typeof item === 'string') {
       url = item.trim()
     } else if (typeof item === 'object' && item !== null) {
@@ -48,11 +56,15 @@ export function parseFeedsYaml(text: string): Feed[] {
       url = typeof rec.url === 'string' ? rec.url.trim() : ''
       name = typeof rec.name === 'string' ? rec.name.trim() : ''
       category = typeof rec.category === 'string' ? rec.category.trim() : ''
+      if (rec.proxyUrl != null && typeof rec.proxyUrl !== 'string') {
+        throw new Error('feedsYaml 第 ' + (index + 1) + ' 项的 proxyUrl 必须是字符串。')
+      }
+      proxyUrl = typeof rec.proxyUrl === 'string' ? rec.proxyUrl.trim() : ''
     }
     if (url === '') {
       throw new Error('订阅配置（feedsYaml）第 ' + (index + 1) + ' 项缺少 url 字段。请在设置页修正 dsh-rss 的订阅列表。')
     }
-    feeds.push({ url, name, category })
+    feeds.push({ url, name, category, ...(proxyUrl ? { proxyUrl } : {}) })
   }
   return feeds
 }
@@ -64,6 +76,7 @@ export function serializeFeeds(feeds: Feed[]): string {
     const rec: Record<string, string> = { url: feed.url }
     if (feed.name !== '') rec.name = feed.name
     if (feed.category !== '') rec.category = feed.category
+    if (feed.proxyUrl) rec.proxyUrl = feed.proxyUrl
     rows.push(rec)
   }
   const body = YAML.stringify(rows).trimEnd()
@@ -89,7 +102,7 @@ export function addFeed(feeds: Feed[], url: string, name: string, category: stri
   const existing = feeds.find((feed) => sameFeedUrl(feed.url, cleanUrl))
   if (existing) {
     const merged: Feed = {
-      url: existing.url,
+      ...existing,
       name: cleanName !== '' ? cleanName : existing.name,
       category: cleanCategory !== '' ? cleanCategory : existing.category,
     }

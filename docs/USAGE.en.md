@@ -98,7 +98,22 @@ On Harness 0.1.7, subscriptions and read cursors are stored in the current profi
 
 ## Proxy
 
-Windows uses its enabled manual proxy by default, honoring protocol selection and bypass entries. No PAC scripts are evaluated and OS settings are never modified. An explicit `proxyUrl` takes precedence; `useSystemProxy: false` disables automatic detection. Other platforms can still configure an HTTP(S) `proxyUrl`. These routes apply only to this plugin.
+Set `proxyUrl` on an individual `feedsYaml` entry to override the plugin's `config.proxyUrl`. If both are empty, Windows uses its enabled manual HTTP(S) system proxy and honors bypass entries. Set `useSystemProxy: false` to turn off automatic detection.
+
+This example sends Hacker News through a local SOCKS5 proxy and reads other feeds directly. Use the full address for the protocol your proxy serves, such as `http://127.0.0.1:7890` for an HTTP or mixed listener, or `https://` for an HTTPS proxy. Try `rss_fetch(name="Hacker News")` or the workbench preview to check the route.
+
+```yaml
+- id: rss
+  name: dsh-rss
+  config:
+    useSystemProxy: false
+    feedsYaml: |
+      - url: https://news.ycombinator.com/rss
+        name: Hacker News
+        proxyUrl: socks5://127.0.0.1:10800
+      - url: https://nodejs.org/en/feed/blog.xml
+        name: Node.js Blog
+```
 
 When native DNS returns VPN Fake-IP (`198.18.0.0/15`), only the feed hostname is sent to [Cloudflare HTTPS DNS](https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/make-api-requests/dns-json/), with Google HTTPS DNS as a service-failure fallback. No URL paths, feed content, credentials or subscription lists are sent. Answers must pass public-address checks, and actual connections are pinned to those addresses. Disable this behavior with `fakeIpDnsFallback: false`. Ordinary public DNS, private DNS and IP literals do not trigger it. Trusted internal feeds still require an explicit `allowPrivateNetwork: true`.
 

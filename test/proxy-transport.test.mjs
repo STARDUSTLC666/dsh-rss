@@ -4,6 +4,34 @@ import http from 'node:http'
 import net from 'node:net'
 import { fetchFeedXml } from '../lib/network.js'
 import { resolveConfig } from '../lib/config.js'
+import { buildRssTools } from '../lib/tools.js'
+import { startSocksFixture } from './fixtures/socks-server.mjs'
+
+test('tool reads use the saved per-feed proxy and inherit the global proxy on other feeds', async t => {
+  const hosts = []
+  const origin = http.createServer((req, res) => {
+    hosts.push(req.headers.host)
+    res.end('<rss version="2.0"><channel><title>Fixture</title></channel></rss>')
+  })
+  const globalRequests = [], overrideRequests = []
+  const global = await startSocksFixture(origin, globalRequests)
+  t.after(() => global.close())
+  const override = await startSocksFixture(origin, overrideRequests)
+  t.after(() => override.close())
+  const scope = { get: () => ({ feedsYaml:
+    '- url: http://hn.example/rss\n  name: Hacker News\n  proxyUrl: ' + override.url +
+    '\n- http://other.example/rss\n- url: http://invalid.example/rss\n  proxyUrl: 127.0.0.1:10800' }) }
+  const config = resolveConfig({ proxyUrl: global.url, timeoutMs: 3000 })
+  const tools = buildRssTools(config, scope, undefined, async () => [{ address: '93.184.216.34', family: 4 }])
+  const fetch = tools.find(tool => tool.name === 'rss_fetch')
+  const check = tools.find(tool => tool.name === 'rss_check')
+  await fetch.execute({ name: 'Hacker News' })
+  await check.execute({ url: 'http://other.example/rss' })
+  await assert.rejects(check.execute({ url: 'http://invalid.example/rss' }), /proxyUrl.*socks5:\/\//)
+  assert.deepEqual(overrideRequests, [{ address: '5db8d822', port: 80 }])
+  assert.deepEqual(globalRequests, [{ address: '5db8d822', port: 80 }])
+  assert.deepEqual(hosts, ['hn.example', 'other.example'])
+})
 
 test('production proxy transport pins CONNECT to the validated IP while preserving Host', async t => {
   const tunnels = []
